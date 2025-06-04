@@ -10,6 +10,7 @@ export interface Catalogue {
   id: string
   name: string
   slug: string
+  customLink?: string // New field for custom short links
   createdAt: string
   updatedAt: string
   slides: Slide[]
@@ -30,6 +31,12 @@ export interface Hotspot {
   slideId: string
 }
 
+export interface CustomizationOption {
+  id: string
+  label: string
+  price: number
+}
+
 export interface Product {
   id: string
   name: string
@@ -37,12 +44,7 @@ export interface Product {
   moq: number
   description: string
   images: string[]
-  customization: {
-    engraved: boolean
-    printed: boolean
-    engravedPrice: number
-    printedPrice: number
-  }
+  customizationOptions: CustomizationOption[] // Changed from fixed structure to flexible options
 }
 
 export interface QuoteLogEntry {
@@ -89,6 +91,11 @@ export async function getCatalogueById(id: string): Promise<Catalogue | null> {
 export async function getCatalogueBySlug(slug: string): Promise<Catalogue | null> {
   const catalogues = await getCatalogues()
   return catalogues.find((c) => c.slug === slug) || null
+}
+
+export async function getCatalogueByCustomLink(customLink: string): Promise<Catalogue | null> {
+  const catalogues = await getCatalogues()
+  return catalogues.find((c) => c.customLink === customLink) || null
 }
 
 export async function saveCatalogues(catalogues: Catalogue[]): Promise<void> {

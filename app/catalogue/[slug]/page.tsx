@@ -13,7 +13,7 @@ import type { Catalogue, Product, Hotspot } from "@/lib/db"
 interface CartItem {
   product: Product
   quantity: number
-  customizationType?: "engraved" | "printed" | null
+  selectedOptions: { [optionId: string]: boolean }
 }
 
 export default function PublicCataloguePage() {
@@ -25,7 +25,7 @@ export default function PublicCataloguePage() {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [selectedQuantity, setSelectedQuantity] = useState(0)
-  const [selectedCustomization, setSelectedCustomization] = useState<"engraved" | "printed" | null>(null)
+  const [selectedOptions, setSelectedOptions] = useState<{ [optionId: string]: boolean }>({})
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [cart, setCart] = useState<CartItem[]>([])
   const [isCartOpen, setIsCartOpen] = useState(false)
@@ -38,7 +38,14 @@ export default function PublicCataloguePage() {
 
   const fetchCatalogue = async () => {
     try {
-      const response = await fetch(`/api/catalogues/slug/${slug}`)
+      // Try fetching by slug first
+      let response = await fetch(`/api/catalogues/slug/${slug}`)
+
+      // If not found by slug, try by custom link
+      if (!response.ok) {
+        response = await fetch(`/api/catalogues/link/${slug}`)
+      }
+
       if (response.ok) {
         const data = await response.json()
         setCatalogue(data)
@@ -91,13 +98,13 @@ export default function PublicCataloguePage() {
     setSelectedProduct(product)
     setSelectedQuantity(product.moq)
     setSelectedImageIndex(0)
-    setSelectedCustomization(null)
+    setSelectedOptions({})
   }
 
   const handleCloseProductModal = () => {
     setSelectedProduct(null)
     setSelectedQuantity(0)
-    setSelectedCustomization(null)
+    setSelectedOptions({})
   }
 
   const handleQuantityChange = (value: number) => {
@@ -106,27 +113,35 @@ export default function PublicCataloguePage() {
     setSelectedQuantity(newQuantity)
   }
 
+  const handleOptionToggle = (optionId: string) => {
+    setSelectedOptions((prev) => ({
+      ...prev,
+      [optionId]: !prev[optionId],
+    }))
+  }
+
+  const getSelectedOptionsPrice = () => {
+    if (!selectedProduct) return 0
+    return selectedProduct.customizationOptions
+      .filter((option) => selectedOptions[option.id])
+      .reduce((total, option) => total + option.price, 0)
+  }
+
+  const getTotalPrice = () => {
+    if (!selectedProduct) return 0
+    return selectedProduct.price + getSelectedOptionsPrice()
+  }
+
   const handleAddToCart = () => {
     if (!selectedProduct || selectedQuantity < selectedProduct.moq) return
 
     const newItem: CartItem = {
       product: selectedProduct,
       quantity: selectedQuantity,
-      customizationType: selectedCustomization,
+      selectedOptions: { ...selectedOptions },
     }
 
-    const existingItemIndex = cart.findIndex(
-      (item) => item.product.id === selectedProduct.id && item.customizationType === selectedCustomization,
-    )
-
-    if (existingItemIndex >= 0) {
-      const updatedCart = [...cart]
-      updatedCart[existingItemIndex].quantity += selectedQuantity
-      setCart(updatedCart)
-    } else {
-      setCart([...cart, newItem])
-    }
-
+    setCart([...cart, newItem])
     handleCloseProductModal()
     setIsCartOpen(true)
   }
@@ -149,15 +164,10 @@ export default function PublicCataloguePage() {
 
   const getItemPrice = (item: CartItem) => {
     const basePrice = item.product.price
-    let additionalPrice = 0
-
-    if (item.customizationType === "engraved" && item.product.customization?.engraved) {
-      additionalPrice = item.product.customization.engravedPrice
-    } else if (item.customizationType === "printed" && item.product.customization?.printed) {
-      additionalPrice = item.product.customization.printedPrice
-    }
-
-    return basePrice + additionalPrice
+    const optionsPrice = item.product.customizationOptions
+      .filter((option) => item.selectedOptions[option.id])
+      .reduce((total, option) => total + option.price, 0)
+    return basePrice + optionsPrice
   }
 
   const totalCartAmount = cart.reduce((total, item) => {
@@ -173,18 +183,21 @@ export default function PublicCataloguePage() {
     if (!email) return
 
     try {
-      // Create quote log entry
       const quoteData = {
         email,
         shareLink: window.location.href,
         catalogueName: catalogue.name,
         totalAmount: totalCartAmount,
-        pdfUrl: `/api/generate-pdf/${catalogue.id}`, // This would be implemented separately
+        pdfUrl: `/api/generate-pdf/${catalogue.id}`,
         items: cart.map((item) => ({
           name: item.product.name,
           quantity: item.quantity,
           price: getItemPrice(item),
-          customization: item.customizationType || undefined,
+          customization:
+            item.product.customizationOptions
+              .filter((option) => item.selectedOptions[option.id])
+              .map((option) => option.label)
+              .join(", ") || undefined,
         })),
       }
 
@@ -230,20 +243,20 @@ export default function PublicCataloguePage() {
 
       {/* Main Content */}
       <main className="flex-1 container py-8 flex justify-center items-center">
-        <div className="max-w-4xl w-full flex justify-center">
-          <div className="relative aspect-[4/3] max-h-[70vh] rounded-lg overflow-hidden border w-full">
+        <div className="max-w-6xl w-full flex justify-center">
+          <div className="relative w-full max-w-4xl rounded-lg overflow-hidden border" style={{ aspectRatio: "16/9" }}>
             {currentSlide && (
               <>
                 <img
                   src={currentSlide.imageUrl || "/placeholder.svg"}
                   alt={`Slide ${currentSlideIndex + 1}`}
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-contain bg-gray-50"
                 />
 
                 {currentSlide.hotspots.map((hotspot) => (
                   <button
                     key={hotspot.id}
-                    className="absolute w-6 h-6 rounded-full bg-primary/80 animate-pulse -translate-x-1/2 -translate-y-1/2 cursor-pointer"
+                    className="absolute w-6 h-6 rounded-full bg-primary/80 animate-pulse -translate-x-1/2 -translate-y-1/2 cursor-pointer hover:bg-primary transition-colors"
                     style={{ left: `${hotspot.x}%`, top: `${hotspot.y}%` }}
                     onClick={() => handleHotspotClick(hotspot)}
                   />
@@ -292,11 +305,11 @@ export default function PublicCataloguePage() {
             <div className="flex flex-col md:flex-row">
               {/* Left side - Mini gallery */}
               <div className="w-full md:w-1/2 bg-muted">
-                <div className="relative aspect-square">
+                <div className="relative" style={{ aspectRatio: "1/1" }}>
                   <img
                     src={selectedProduct.images?.[selectedImageIndex] || "/placeholder.svg"}
                     alt={selectedProduct.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                   />
                 </div>
                 {selectedProduct.images && selectedProduct.images.length > 1 && (
@@ -324,58 +337,31 @@ export default function PublicCataloguePage() {
               <div className="w-full md:w-1/2 p-6 flex flex-col">
                 <h2 className="text-xl font-bold">{selectedProduct.name}</h2>
                 <div className="flex gap-4 mt-1 text-sm text-muted-foreground">
-                  <span>Price ₱{selectedProduct.price.toFixed(2)}</span>
+                  <span>Price ₱{getTotalPrice().toFixed(2)}</span>
                   <span>|</span>
                   <span>MOQ {selectedProduct.moq} units</span>
                 </div>
 
                 <p className="mt-4 text-sm">{selectedProduct.description}</p>
 
-                {(selectedProduct.customization?.engraved || selectedProduct.customization?.printed) && (
+                {selectedProduct.customizationOptions && selectedProduct.customizationOptions.length > 0 && (
                   <div className="mt-6">
                     <h3 className="font-medium mb-2">Customization Options</h3>
                     <div className="space-y-2">
-                      {selectedProduct.customization?.engraved && (
-                        <div className="flex items-center space-x-2">
+                      {selectedProduct.customizationOptions.map((option) => (
+                        <div key={option.id} className="flex items-center space-x-2">
                           <input
-                            type="radio"
-                            id="engraved"
-                            name="customization"
+                            type="checkbox"
+                            id={option.id}
                             className="h-4 w-4"
-                            checked={selectedCustomization === "engraved"}
-                            onChange={() => setSelectedCustomization("engraved")}
+                            checked={selectedOptions[option.id] || false}
+                            onChange={() => handleOptionToggle(option.id)}
                           />
-                          <label htmlFor="engraved">
-                            Engraved (+₱{selectedProduct.customization.engravedPrice.toFixed(2)})
+                          <label htmlFor={option.id}>
+                            {option.label} (+₱{option.price.toFixed(2)})
                           </label>
                         </div>
-                      )}
-                      {selectedProduct.customization?.printed && (
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="radio"
-                            id="printed"
-                            name="customization"
-                            className="h-4 w-4"
-                            checked={selectedCustomization === "printed"}
-                            onChange={() => setSelectedCustomization("printed")}
-                          />
-                          <label htmlFor="printed">
-                            Printed (+₱{selectedProduct.customization.printedPrice.toFixed(2)})
-                          </label>
-                        </div>
-                      )}
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="radio"
-                          id="none"
-                          name="customization"
-                          className="h-4 w-4"
-                          checked={selectedCustomization === null}
-                          onChange={() => setSelectedCustomization(null)}
-                        />
-                        <label htmlFor="none">None</label>
-                      </div>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -432,14 +418,17 @@ export default function PublicCataloguePage() {
                       <div className="flex justify-between items-start">
                         <div>
                           <h3 className="font-medium">{item.product.name}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            ₱{getItemPrice(item).toFixed(2)} per unit
-                            {item.customizationType && (
-                              <span className="ml-1">
-                                ({item.customizationType === "engraved" ? "Engraved" : "Printed"})
-                              </span>
-                            )}
-                          </p>
+                          <p className="text-sm text-muted-foreground">₱{getItemPrice(item).toFixed(2)} per unit</p>
+                          {item.product.customizationOptions.filter((option) => item.selectedOptions[option.id])
+                            .length > 0 && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Options:{" "}
+                              {item.product.customizationOptions
+                                .filter((option) => item.selectedOptions[option.id])
+                                .map((option) => option.label)
+                                .join(", ")}
+                            </p>
+                          )}
                         </div>
                         <Button
                           variant="ghost"
