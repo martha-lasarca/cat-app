@@ -56,6 +56,7 @@ export default function EditorPage() {
         setCatalogue(data)
         if (data.slides.length > 0) {
           setSelectedSlide(data.slides[0])
+          // Start with slide 1 display
         }
       } else {
         console.error("Catalogue not found")
@@ -501,7 +502,6 @@ export default function EditorPage() {
                             src={slide.imageUrl || "/placeholder.svg"}
                             alt={`Slide ${index + 1}`}
                             className="w-full h-full object-cover"
-                            style={{ transform: "rotate(90deg)" }}
                           />
                           <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 text-center">
                             Slide {index + 1}
@@ -751,22 +751,20 @@ export default function EditorPage() {
                         <DialogFooter>
                           <Button
                             onClick={() => {
-                              // Auto-close the dialog
-                              const closeButton = document.querySelector(
-                                '[data-state="open"] button[aria-label="Close"]',
-                              ) as HTMLElement
-                              if (closeButton) closeButton.click()
+                              if (selectedProduct) {
+                                // Close the dialog programmatically
+                                const event = new KeyboardEvent("keydown", { key: "Escape" })
+                                document.dispatchEvent(event)
 
-                              toast({
-                                title: "Product Selected",
-                                description: selectedProduct
-                                  ? `${selectedProduct.name} selected. Now click on the image to place a hotspot.`
-                                  : "Please select a product first.",
-                              })
+                                toast({
+                                  title: "Product Selected",
+                                  description: `${selectedProduct.name} selected. Click on the preview image to place a hotspot.`,
+                                })
+                              }
                             }}
                             disabled={!selectedProduct}
                           >
-                            Select Product & Close
+                            Select Product
                           </Button>
                         </DialogFooter>
                       </DialogContent>
@@ -778,6 +776,50 @@ export default function EditorPage() {
                       ? `Click on the preview image to add a hotspot for ${selectedProduct.name}`
                       : "Select a product first, then click on the preview image to add a hotspot"}
                   </p>
+
+                  {/* New Hotspot Positioning - Move to Left Panel */}
+                  {newHotspot && selectedProduct && (
+                    <div className="mt-4 p-3 border rounded-md bg-green-50 dark:bg-green-950">
+                      <div className="space-y-3">
+                        <div>
+                          <p className="font-medium">{selectedProduct.name} Hotspot</p>
+                          <p className="text-sm text-muted-foreground">
+                            Position: {newHotspot.x.toFixed(2)}%, {newHotspot.y.toFixed(2)}%
+                          </p>
+                        </div>
+                        <Button onClick={handleAddHotspot} className="w-full">
+                          Add Hotspot
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Selected Hotspot Info - Move to Left Panel */}
+                  {selectedHotspot && !editingHotspot && (
+                    <div className="mt-4 p-3 border rounded-md">
+                      <div className="space-y-3">
+                        <div>
+                          <h4 className="font-medium">Selected Hotspot</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Product: {getProductForHotspot(selectedHotspot)?.name}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Position: {selectedHotspot.x.toFixed(2)}%, {selectedHotspot.y.toFixed(2)}%
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" onClick={handleEditHotspot} className="flex-1">
+                            <Edit className="h-4 w-4 mr-1" />
+                            Edit Position
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={handleDeleteHotspot} className="flex-1">
+                            <Trash className="h-4 w-4 mr-1" />
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex-1 overflow-y-auto space-y-2">
                     {getCurrentSlideHotspots().map((hotspot) => (
@@ -864,7 +906,6 @@ export default function EditorPage() {
                       src={selectedSlide.imageUrl || "/placeholder.svg"}
                       alt="Preview"
                       className="w-full h-full object-contain"
-                      style={{ transform: "rotate(90deg)" }}
                     />
 
                     {selectedSlide.hotspots.map((hotspot) => (
@@ -897,48 +938,6 @@ export default function EditorPage() {
                 )}
               </div>
             </div>
-
-            {/* New Hotspot Confirmation */}
-            {newHotspot && selectedProduct && (
-              <div className="mt-4 p-3 border rounded-md bg-green-50 dark:bg-green-950">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{selectedProduct.name} Hotspot</p>
-                    <p className="text-sm text-muted-foreground">
-                      Position: {newHotspot.x.toFixed(2)}%, {newHotspot.y.toFixed(2)}%
-                    </p>
-                  </div>
-                  <Button onClick={handleAddHotspot}>Add Hotspot</Button>
-                </div>
-              </div>
-            )}
-
-            {/* Selected Hotspot Info */}
-            {selectedHotspot && !editingHotspot && (
-              <div className="mt-4 p-3 border rounded-md">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-medium">Selected Hotspot</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Product: {getProductForHotspot(selectedHotspot)?.name}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Position: {selectedHotspot.x.toFixed(2)}%, {selectedHotspot.y.toFixed(2)}%
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={handleEditHotspot}>
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={handleDeleteHotspot}>
-                      <Trash className="h-4 w-4 mr-1" />
-                      Delete
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>

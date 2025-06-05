@@ -92,11 +92,13 @@ export default function PublicCataloguePage() {
   }
 
   const handleHotspotClick = (hotspot: Hotspot) => {
+    if (!hotspot || !catalogue) return
+
     const product = catalogue.products.find((p) => p.id === hotspot.productId)
     if (!product) return
 
     setSelectedProduct(product)
-    setSelectedQuantity(product.moq)
+    setSelectedQuantity(product.moq || 1)
     setSelectedImageIndex(0)
     setSelectedOptions({})
   }
