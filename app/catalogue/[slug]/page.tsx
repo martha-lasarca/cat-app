@@ -302,11 +302,11 @@ export default function PublicCataloguePage() {
 
       {/* Product Modal */}
       <Dialog open={!!selectedProduct} onOpenChange={(open) => !open && handleCloseProductModal()}>
-        <DialogContent className="sm:max-w-[700px] p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-4xl p-0 overflow-hidden">
           {selectedProduct && (
-            <div className="flex flex-col md:flex-row">
-              {/* Left side - Mini gallery */}
-              <div className="w-full md:w-1/2 bg-muted">
+            <div className="flex flex-col md:flex-row h-[80vh]">
+              {/* Left side - Mini gallery (30% width) */}
+              <div className="w-full md:w-[30%] bg-muted">
                 <div className="relative" style={{ aspectRatio: "1/1" }}>
                   <img
                     src={selectedProduct.images?.[selectedImageIndex] || "/placeholder.svg"}
@@ -319,7 +319,7 @@ export default function PublicCataloguePage() {
                     {selectedProduct.images.map((img, idx) => (
                       <button
                         key={idx}
-                        className={`w-16 h-16 rounded-md overflow-hidden border-2 ${
+                        className={`w-12 h-12 rounded-md overflow-hidden border-2 ${
                           selectedImageIndex === idx ? "border-primary" : "border-transparent"
                         }`}
                         onClick={() => setSelectedImageIndex(idx)}
@@ -335,8 +335,8 @@ export default function PublicCataloguePage() {
                 )}
               </div>
 
-              {/* Right side - Product details */}
-              <div className="w-full md:w-1/2 p-6 flex flex-col">
+              {/* Right side - Product details (70% width) */}
+              <div className="w-full md:w-[70%] p-6 flex flex-col overflow-y-auto">
                 <h2 className="text-xl font-bold">{selectedProduct.name}</h2>
                 <div className="flex gap-4 mt-1 text-sm text-muted-foreground">
                   <span>Price ₱{getTotalPrice().toFixed(2)}</span>
@@ -344,7 +344,54 @@ export default function PublicCataloguePage() {
                   <span>MOQ {selectedProduct.moq} units</span>
                 </div>
 
-                <p className="mt-4 text-sm">{selectedProduct.description}</p>
+                {/* Specifications */}
+                {selectedProduct.specifications && selectedProduct.specifications.length > 0 && (
+                  <div className="mt-4">
+                    <h3 className="font-medium mb-2">Specifications</h3>
+                    <ul className="text-sm space-y-1">
+                      {selectedProduct.specifications.map((spec, index) => (
+                        <li key={index} className="flex items-start">
+                          <span className="mr-2">•</span>
+                          <span>{spec}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Inclusions */}
+                {selectedProduct.inclusions && selectedProduct.inclusions.length > 0 && (
+                  <div className="mt-4">
+                    <h3 className="font-medium mb-2">Inclusions</h3>
+                    <ul className="text-sm space-y-1">
+                      {selectedProduct.inclusions.map((inclusion, index) => (
+                        <li key={index} className="flex items-start">
+                          <span className="mr-2">•</span>
+                          <span>{inclusion}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Lead Time */}
+                {(selectedProduct.leadTime?.peak || selectedProduct.leadTime?.nonPeak) && (
+                  <div className="mt-4">
+                    <h3 className="font-medium mb-2">Lead Time</h3>
+                    <div className="text-sm space-y-1">
+                      {selectedProduct.leadTime.peak && (
+                        <div>
+                          <span className="font-medium">Peak:</span> {selectedProduct.leadTime.peak}
+                        </div>
+                      )}
+                      {selectedProduct.leadTime.nonPeak && (
+                        <div>
+                          <span className="font-medium">Non-Peak:</span> {selectedProduct.leadTime.nonPeak}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {selectedProduct.customizationOptions && selectedProduct.customizationOptions.length > 0 && (
                   <div className="mt-6">

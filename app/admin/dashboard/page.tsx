@@ -248,7 +248,7 @@ export default function DashboardPage() {
     }
   }
 
-  const catalogueGridCols = "grid gap-8 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-2"
+  const catalogueGridCols = "grid gap-6 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3"
 
   if (loading) {
     return (
@@ -325,7 +325,7 @@ export default function DashboardPage() {
 
       <div className={`${catalogueGridCols} mt-6`}>
         {catalogues.map((catalogue) => (
-          <Card key={catalogue.id} className="w-full">
+          <Card key={catalogue.id} className="w-full max-w-sm">
             <Link href={`/admin/editor/${catalogue.id}`} className="block cursor-pointer">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg">{catalogue.name}</CardTitle>
@@ -335,7 +335,7 @@ export default function DashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="pb-2">
-                <div className="h-40 rounded-md bg-muted flex items-center justify-center overflow-hidden">
+                <div className="h-32 rounded-md bg-muted flex items-center justify-center overflow-hidden">
                   {catalogue.slides?.[0]?.imageUrl ? (
                     <img
                       src={catalogue.slides[0].imageUrl || "/placeholder.svg"}
@@ -349,30 +349,30 @@ export default function DashboardPage() {
               </CardContent>
             </Link>
             <CardFooter className="flex flex-col gap-4 p-6">
-              <div className="grid grid-cols-6 gap-6 w-full">
-                <div className="flex flex-col items-center gap-4 min-h-[110px] p-4">
-                  <Button variant="ghost" size="icon" asChild className="h-8 w-8">
+              <div className="grid grid-cols-6 gap-4 w-full">
+                <div className="flex flex-col items-center gap-2 min-h-[80px] p-2">
+                  <Button variant="ghost" size="icon" asChild className="h-6 w-6">
                     <Link href={`/catalogue/${catalogue.slug}`}>
-                      <Eye className="h-4 w-4" />
+                      <Eye className="h-3 w-3" />
                     </Link>
                   </Button>
                   <span className="text-xs text-muted-foreground text-center leading-tight">Preview</span>
                 </div>
 
-                <div className="flex flex-col items-center gap-4 min-h-[110px] p-4">
-                  <Button variant="ghost" size="icon" asChild className="h-8 w-8">
+                <div className="flex flex-col items-center gap-2 min-h-[80px] p-2">
+                  <Button variant="ghost" size="icon" asChild className="h-6 w-6">
                     <Link href={`/admin/editor/${catalogue.id}`}>
-                      <Edit className="h-4 w-4" />
+                      <Edit className="h-3 w-3" />
                     </Link>
                   </Button>
                   <span className="text-xs text-muted-foreground text-center leading-tight">Edit</span>
                 </div>
 
-                <div className="flex flex-col items-center gap-4 min-h-[110px] p-4">
+                <div className="flex flex-col items-center gap-2 min-h-[80px] p-2">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8"
+                    className="h-6 w-6"
                     onClick={() => {
                       setCatalogueToRename(catalogue)
                       setNewName(catalogue.name)
@@ -381,16 +381,16 @@ export default function DashboardPage() {
                       }, 100)
                     }}
                   >
-                    <FileEdit className="h-4 w-4" />
+                    <FileEdit className="h-3 w-3" />
                   </Button>
                   <span className="text-xs text-muted-foreground text-center leading-tight">Rename</span>
                 </div>
 
-                <div className="flex flex-col items-center gap-4 min-h-[110px] p-4">
+                <div className="flex flex-col items-center gap-2 min-h-[80px] p-2">
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Share className="h-4 w-4" />
+                      <Button variant="ghost" size="icon" className="h-6 w-6">
+                        <Share className="h-3 w-3" />
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[825px]">
@@ -545,26 +545,26 @@ export default function DashboardPage() {
                   <span className="text-xs text-muted-foreground text-center leading-tight">Share</span>
                 </div>
 
-                <div className="flex flex-col items-center gap-4 min-h-[110px] p-4">
+                <div className="flex flex-col items-center gap-2 min-h-[80px] p-2">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8"
+                    className="h-6 w-6"
                     onClick={() => handleDuplicateCatalogue(catalogue)}
                   >
-                    <Copy className="h-4 w-4" />
+                    <Copy className="h-3 w-3" />
                   </Button>
                   <span className="text-xs text-muted-foreground text-center leading-tight">Duplicate</span>
                 </div>
 
-                <div className="flex flex-col items-center gap-4 min-h-[110px] p-4">
+                <div className="flex flex-col items-center gap-2 min-h-[80px] p-2">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8"
+                    className="h-6 w-6"
                     onClick={() => handleDeleteCatalogue(catalogue.id)}
                   >
-                    <Trash className="h-4 w-4" />
+                    <Trash className="h-3 w-3" />
                   </Button>
                   <span className="text-xs text-muted-foreground text-center leading-tight">Delete</span>
                 </div>
@@ -573,4 +573,6 @@ export default function DashboardPage() {
           </Card>
         ))}
       </div>
-    \
+    </AdminLayout>
+  )
+}

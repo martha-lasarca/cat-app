@@ -19,7 +19,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Textarea } from "@/components/ui/textarea"
 import { AdminLayout } from "@/components/admin-layout"
 import { ImageIcon, Plus, Save, Upload, Eye, Edit, Trash, X } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
@@ -172,8 +171,13 @@ export default function EditorPage() {
       name: "New Product",
       price: 0,
       moq: 1,
-      description: "",
-      images: ["/placeholder.svg?height=600&width=600"],
+      specifications: [],
+      inclusions: [],
+      leadTime: {
+        peak: "",
+        nonPeak: "",
+      },
+      images: [],
       customizationOptions: [],
     }
 
@@ -200,6 +204,50 @@ export default function EditorPage() {
 
     setCatalogue(updatedCatalogue)
     setHasUnsavedChanges(true)
+  }
+
+  const handleAddSpecification = () => {
+    if (!selectedProduct) return
+    const updatedSpecs = [...selectedProduct.specifications, ""]
+    handleUpdateProduct("specifications", updatedSpecs)
+  }
+
+  const handleUpdateSpecification = (index: number, value: string) => {
+    if (!selectedProduct) return
+    const updatedSpecs = [...selectedProduct.specifications]
+    updatedSpecs[index] = value
+    handleUpdateProduct("specifications", updatedSpecs)
+  }
+
+  const handleRemoveSpecification = (index: number) => {
+    if (!selectedProduct) return
+    const updatedSpecs = selectedProduct.specifications.filter((_, i) => i !== index)
+    handleUpdateProduct("specifications", updatedSpecs)
+  }
+
+  const handleAddInclusion = () => {
+    if (!selectedProduct) return
+    const updatedInclusions = [...selectedProduct.inclusions, ""]
+    handleUpdateProduct("inclusions", updatedInclusions)
+  }
+
+  const handleUpdateInclusion = (index: number, value: string) => {
+    if (!selectedProduct) return
+    const updatedInclusions = [...selectedProduct.inclusions]
+    updatedInclusions[index] = value
+    handleUpdateProduct("inclusions", updatedInclusions)
+  }
+
+  const handleRemoveInclusion = (index: number) => {
+    if (!selectedProduct) return
+    const updatedInclusions = selectedProduct.inclusions.filter((_, i) => i !== index)
+    handleUpdateProduct("inclusions", updatedInclusions)
+  }
+
+  const handleUpdateLeadTime = (type: "peak" | "nonPeak", value: string) => {
+    if (!selectedProduct) return
+    const updatedLeadTime = { ...selectedProduct.leadTime, [type]: value }
+    handleUpdateProduct("leadTime", updatedLeadTime)
   }
 
   const handleAddCustomizationOption = () => {
@@ -659,13 +707,85 @@ export default function EditorPage() {
                             className="text-sm"
                           />
                         </div>
-                        <Textarea
-                          value={selectedProduct.description}
-                          onChange={(e) => handleUpdateProduct("description", e.target.value)}
-                          placeholder="Description"
-                          rows={2}
-                          className="text-sm"
-                        />
+                      </div>
+
+                      {/* Specifications */}
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-medium">Specifications</Label>
+                          <Button size="sm" variant="outline" onClick={handleAddSpecification}>
+                            <Plus className="h-3 w-3 mr-1" />
+                            Add
+                          </Button>
+                        </div>
+                        <div className="space-y-2 mt-2">
+                          {selectedProduct.specifications.map((spec, index) => (
+                            <div key={index} className="flex gap-2 items-center">
+                              <span className="text-xs">•</span>
+                              <Input
+                                value={spec}
+                                onChange={(e) => handleUpdateSpecification(index, e.target.value)}
+                                placeholder="Specification"
+                                className="text-sm flex-1"
+                              />
+                              <Button size="sm" variant="outline" onClick={() => handleRemoveSpecification(index)}>
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Inclusions */}
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-medium">Inclusions</Label>
+                          <Button size="sm" variant="outline" onClick={handleAddInclusion}>
+                            <Plus className="h-3 w-3 mr-1" />
+                            Add
+                          </Button>
+                        </div>
+                        <div className="space-y-2 mt-2">
+                          {selectedProduct.inclusions.map((inclusion, index) => (
+                            <div key={index} className="flex gap-2 items-center">
+                              <span className="text-xs">•</span>
+                              <Input
+                                value={inclusion}
+                                onChange={(e) => handleUpdateInclusion(index, e.target.value)}
+                                placeholder="Inclusion"
+                                className="text-sm flex-1"
+                              />
+                              <Button size="sm" variant="outline" onClick={() => handleRemoveInclusion(index)}>
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Lead Time */}
+                      <div>
+                        <Label className="text-sm font-medium">Lead Time</Label>
+                        <div className="space-y-2 mt-2">
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Peak</Label>
+                            <Input
+                              value={selectedProduct.leadTime.peak}
+                              onChange={(e) => handleUpdateLeadTime("peak", e.target.value)}
+                              placeholder="e.g., 15-20 business days"
+                              className="text-sm"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Non-Peak</Label>
+                            <Input
+                              value={selectedProduct.leadTime.nonPeak}
+                              onChange={(e) => handleUpdateLeadTime("nonPeak", e.target.value)}
+                              placeholder="e.g., 7-10 business days"
+                              className="text-sm"
+                            />
+                          </div>
+                        </div>
                       </div>
 
                       {/* Product Images */}

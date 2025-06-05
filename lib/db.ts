@@ -42,9 +42,14 @@ export interface Product {
   name: string
   price: number
   moq: number
-  description: string
+  specifications: string[] // Array of specification bullet points
+  inclusions: string[] // Array of inclusion bullet points
+  leadTime: {
+    peak: string
+    nonPeak: string
+  }
   images: string[]
-  customizationOptions: CustomizationOption[] // Changed from fixed structure to flexible options
+  customizationOptions: CustomizationOption[]
 }
 
 export interface QuoteLogEntry {
