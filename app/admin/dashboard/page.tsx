@@ -464,14 +464,18 @@ export default function DashboardPage() {
                             </p>
                             <div className="flex items-center gap-2">
                               <Input
-                                value={`${window.location.origin}/catalogue/${catalogue.slug}`}
+                                value={`${typeof window !== "undefined" ? window.location.origin : ""}/catalogue/${catalogue.slug}`}
                                 readOnly
                                 className="text-sm"
                               />
                               <Button
                                 variant="outline"
                                 size="icon"
-                                onClick={() => copyToClipboard(`${window.location.origin}/catalogue/${catalogue.slug}`)}
+                                onClick={() =>
+                                  copyToClipboard(
+                                    `${typeof window !== "undefined" ? window.location.origin : ""}/catalogue/${catalogue.slug}`,
+                                  )
+                                }
                               >
                                 <Copy className="h-4 w-4" />
                               </Button>

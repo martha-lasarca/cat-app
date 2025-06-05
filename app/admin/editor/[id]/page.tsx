@@ -947,6 +947,37 @@ export default function EditorPage() {
                     </Dialog>
                   </div>
 
+                  {/* Add slide selector */}
+                  <div className="mb-4">
+                    <Label className="text-sm font-medium">Select Slide</Label>
+                    <div className="grid grid-cols-3 gap-2 mt-2">
+                      {catalogue.slides.map((slide, index) => (
+                        <div
+                          key={slide.id}
+                          className={`relative rounded-md overflow-hidden cursor-pointer border-2 ${
+                            selectedSlide?.id === slide.id ? "border-primary" : "border-transparent"
+                          } hover:border-primary/50 transition-colors`}
+                          style={{ aspectRatio: "3/4" }}
+                          onClick={() => handleSelectSlide(slide)}
+                        >
+                          <img
+                            src={slide.imageUrl || "/placeholder.svg"}
+                            alt={`Slide ${index + 1}`}
+                            className="w-full h-full object-contain"
+                          />
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 text-center">
+                            Slide {index + 1}
+                          </div>
+                          {slide.hotspots.length > 0 && (
+                            <div className="absolute top-1 right-1 bg-primary text-white text-xs px-1 rounded">
+                              {slide.hotspots.length}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                   <p className="text-xs text-muted-foreground mb-4">
                     {selectedProduct
                       ? `Click on the preview image to add a hotspot for ${selectedProduct.name}`

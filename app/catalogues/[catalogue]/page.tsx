@@ -4,16 +4,29 @@ import { useState } from "react"
 import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { ChevronLeft, ChevronRight, Minus, Plus, ShoppingCart, X } from "lucide-react"
+
+interface CustomizationOption {
+  type: string
+  options: string[]
+}
 
 interface Product {
   id: string
   name: string
   price: number
   moq: number
-  description: string
+  description?: string // Keep for backward compatibility
+  specifications?: string[]
+  inclusions?: string[]
+  leadTime?: {
+    peak: string
+    nonPeak: string
+  }
+  customizationOptions?: CustomizationOption[]
+  images?: string[]
 }
 
 interface CartItem {
@@ -61,6 +74,7 @@ export default function CataloguePage() {
       price: 599.99,
       moq: 50,
       description: "High-quality cotton t-shirt with custom printing options.",
+      specifications: ["Material: 100% Cotton", "Sizes: S, M, L, XL"],
     },
     {
       id: "2",
@@ -68,6 +82,7 @@ export default function CataloguePage() {
       price: 1299.99,
       moq: 25,
       description: "Classic denim jeans with modern fit and premium fabric.",
+      specifications: ["Material: Denim", "Fit: Slim Fit", "Sizes: 28, 30, 32, 34"],
     },
     {
       id: "3",
@@ -75,6 +90,7 @@ export default function CataloguePage() {
       price: 899.99,
       moq: 30,
       description: "Comfortable hoodie perfect for casual wear and branding.",
+      specifications: ["Material: Cotton Blend", "Sizes: S, M, L, XL", "Colors: Black, Grey, Navy"],
     },
   ])
 
@@ -224,7 +240,6 @@ export default function CataloguePage() {
             <>
               <DialogHeader>
                 <DialogTitle>{selectedProduct.name}</DialogTitle>
-                <DialogDescription>{selectedProduct.description}</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="flex justify-between items-center">
@@ -269,6 +284,28 @@ export default function CataloguePage() {
                   <span>₱{(selectedProduct.price * selectedQuantity).toFixed(2)}</span>
                 </div>
               </div>
+              {/* Specifications */}
+              {selectedProduct.specifications && selectedProduct.specifications.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="font-medium mb-2">Specifications</h3>
+                  <ul className="text-sm space-y-1">
+                    {selectedProduct.specifications.map((spec, index) => (
+                      <li key={index} className="flex items-start">
+                        <span className="mr-2">•</span>
+                        <span>{spec}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Show description if no specifications (backward compatibility) */}
+              {(!selectedProduct.specifications || selectedProduct.specifications.length === 0) &&
+                selectedProduct.description && (
+                  <div className="mt-4">
+                    <p className="text-sm">{selectedProduct.description}</p>
+                  </div>
+                )}
               <div className="flex justify-end">
                 <Button onClick={handleAddToCart}>Add to Cart</Button>
               </div>

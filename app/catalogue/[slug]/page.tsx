@@ -319,7 +319,7 @@ export default function PublicCataloguePage() {
                     {selectedProduct.images.map((img, idx) => (
                       <button
                         key={idx}
-                        className={`w-12 h-12 rounded-md overflow-hidden border-2 ${
+                        className={`w-16 h-16 rounded-md overflow-hidden border-2 flex-shrink-0 ${
                           selectedImageIndex === idx ? "border-primary" : "border-transparent"
                         }`}
                         onClick={() => setSelectedImageIndex(idx)}
@@ -339,7 +339,7 @@ export default function PublicCataloguePage() {
               <div className="w-full md:w-[70%] p-6 flex flex-col overflow-y-auto">
                 <h2 className="text-xl font-bold">{selectedProduct.name}</h2>
                 <div className="flex gap-4 mt-1 text-sm text-muted-foreground">
-                  <span>Price ₱{getTotalPrice().toFixed(2)}</span>
+                  <span>Price per unit (VAT Ex) ₱{getTotalPrice().toFixed(2)}</span>
                   <span>|</span>
                   <span>MOQ {selectedProduct.moq} units</span>
                 </div>
@@ -374,25 +374,26 @@ export default function PublicCataloguePage() {
                   </div>
                 )}
 
-                {/* Lead Time */}
+                {/* Lead Time - Non-Peak above Peak */}
                 {(selectedProduct.leadTime?.peak || selectedProduct.leadTime?.nonPeak) && (
                   <div className="mt-4">
                     <h3 className="font-medium mb-2">Lead Time</h3>
                     <div className="text-sm space-y-1">
-                      {selectedProduct.leadTime.peak && (
-                        <div>
-                          <span className="font-medium">Peak:</span> {selectedProduct.leadTime.peak}
-                        </div>
-                      )}
                       {selectedProduct.leadTime.nonPeak && (
                         <div>
                           <span className="font-medium">Non-Peak:</span> {selectedProduct.leadTime.nonPeak}
+                        </div>
+                      )}
+                      {selectedProduct.leadTime.peak && (
+                        <div>
+                          <span className="font-medium">Peak:</span> {selectedProduct.leadTime.peak}
                         </div>
                       )}
                     </div>
                   </div>
                 )}
 
+                {/* Customization Options */}
                 {selectedProduct.customizationOptions && selectedProduct.customizationOptions.length > 0 && (
                   <div className="mt-6">
                     <h3 className="font-medium mb-2">Customization Options</h3>
@@ -471,7 +472,7 @@ export default function PublicCataloguePage() {
                           {item.product.customizationOptions.filter((option) => item.selectedOptions[option.id])
                             .length > 0 && (
                             <p className="text-xs text-muted-foreground mt-1">
-                              Options:{" "}
+                              Customization:{" "}
                               {item.product.customizationOptions
                                 .filter((option) => item.selectedOptions[option.id])
                                 .map((option) => option.label)
