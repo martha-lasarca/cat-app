@@ -21,7 +21,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { AdminLayout } from "@/components/admin-layout"
-import { ImageIcon, Plus, Save, Upload, Eye, Edit, Trash, X, LinkIcon } from "lucide-react"
+import { ImageIcon, Plus, Save, Upload, Eye, Edit, Trash, X } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
 import type { Catalogue, Product, Slide, Hotspot, CustomizationOption } from "@/lib/db"
 
@@ -41,9 +41,7 @@ export default function EditorPage() {
   const [selectedHotspot, setSelectedHotspot] = useState<Hotspot | null>(null)
   const [editingHotspot, setEditingHotspot] = useState<Hotspot | null>(null)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
-  const [selectedSlideForHotspots, setSelectedSlideForHotspots] = useState<Slide | null>(null)
   const [uploading, setUploading] = useState(false)
-  const [customLink, setCustomLink] = useState("")
 
   useEffect(() => {
     fetchCatalogue()
@@ -56,10 +54,8 @@ export default function EditorPage() {
       if (response.ok) {
         const data = await response.json()
         setCatalogue(data)
-        setCustomLink(data.customLink || "")
         if (data.slides.length > 0) {
           setSelectedSlide(data.slides[0])
-          setSelectedSlideForHotspots(data.slides[0])
         }
       } else {
         console.error("Catalogue not found")
@@ -112,35 +108,12 @@ export default function EditorPage() {
     }
   }
 
-  const handleSaveCustomLink = async () => {
-    if (!catalogue) return
-
-    const updatedCatalogue = {
-      ...catalogue,
-      customLink: customLink || undefined,
-    }
-
-    await saveCatalogue(updatedCatalogue)
-  }
-
-  const handleCopyLink = () => {
-    const link = customLink
-      ? `${window.location.origin}/catalogue/${customLink}`
-      : `${window.location.origin}/catalogue/${catalogue?.slug}`
-
-    navigator.clipboard.writeText(link)
-    toast({
-      title: "Link Copied",
-      description: "The catalogue link has been copied to your clipboard",
-    })
-  }
-
   const handleAddSlide = () => {
     if (!catalogue) return
 
     const newSlide: Slide = {
       id: Date.now().toString(),
-      imageUrl: "/placeholder.svg?height=600&width=800",
+      imageUrl: "/placeholder.svg?height=800&width=600",
       hotspots: [],
     }
 
@@ -156,7 +129,6 @@ export default function EditorPage() {
 
   const handleSelectSlide = (slide: Slide) => {
     setSelectedSlide(slide)
-    setSelectedSlideForHotspots(slide)
   }
 
   const handleAddProduct = () => {
@@ -168,7 +140,7 @@ export default function EditorPage() {
       price: 0,
       moq: 1,
       description: "",
-      images: ["/placeholder.svg?height=600&width=800"],
+      images: ["/placeholder.svg?height=600&width=600"],
       customizationOptions: [],
     }
 
@@ -227,7 +199,7 @@ export default function EditorPage() {
   }
 
   const handleSlideClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (activeTab !== "hotspots" || !selectedSlideForHotspots || !catalogue) return
+    if (activeTab !== "hotspots" || !selectedSlide || !catalogue) return
 
     // If we're editing a hotspot, update its position
     if (editingHotspot) {
@@ -242,7 +214,7 @@ export default function EditorPage() {
 
       const updatedCatalogue = { ...catalogue, slides: updatedSlides }
       setCatalogue(updatedCatalogue)
-      setSelectedSlideForHotspots(updatedSlides.find((s) => s.id === selectedSlideForHotspots.id)!)
+      setSelectedSlide(updatedSlides.find((s) => s.id === selectedSlide.id)!)
 
       setEditingHotspot({ ...editingHotspot, x, y })
       setSelectedHotspot({ ...editingHotspot, x, y })
@@ -268,23 +240,23 @@ export default function EditorPage() {
   }
 
   const handleAddHotspot = () => {
-    if (!newHotspot || !selectedProduct || !selectedSlideForHotspots || !catalogue) return
+    if (!newHotspot || !selectedProduct || !selectedSlide || !catalogue) return
 
     const newHotspotObj: Hotspot = {
       id: Date.now().toString(),
       x: newHotspot.x,
       y: newHotspot.y,
       productId: selectedProduct.id,
-      slideId: selectedSlideForHotspots.id,
+      slideId: selectedSlide.id,
     }
 
     const updatedSlides = catalogue.slides.map((slide) =>
-      slide.id === selectedSlideForHotspots.id ? { ...slide, hotspots: [...slide.hotspots, newHotspotObj] } : slide,
+      slide.id === selectedSlide.id ? { ...slide, hotspots: [...slide.hotspots, newHotspotObj] } : slide,
     )
 
     const updatedCatalogue = { ...catalogue, slides: updatedSlides }
     setCatalogue(updatedCatalogue)
-    setSelectedSlideForHotspots(updatedSlides.find((s) => s.id === selectedSlideForHotspots.id)!)
+    setSelectedSlide(updatedSlides.find((s) => s.id === selectedSlide.id)!)
     setNewHotspot(null)
     setHasUnsavedChanges(true)
 
@@ -309,7 +281,7 @@ export default function EditorPage() {
   }
 
   const handleDeleteHotspot = () => {
-    if (!selectedHotspot || !catalogue) return
+    if (!selectedHotspot || !catalogue || !selectedSlide) return
 
     const updatedSlides = catalogue.slides.map((slide) => ({
       ...slide,
@@ -318,7 +290,7 @@ export default function EditorPage() {
 
     const updatedCatalogue = { ...catalogue, slides: updatedSlides }
     setCatalogue(updatedCatalogue)
-    setSelectedSlideForHotspots(updatedSlides.find((s) => s.id === selectedSlideForHotspots.id)!)
+    setSelectedSlide(updatedSlides.find((s) => s.id === selectedSlide.id)!)
     setHasUnsavedChanges(true)
 
     toast({
@@ -421,9 +393,9 @@ export default function EditorPage() {
 
   // Get products that don't have hotspots on the selected slide
   const getAvailableProducts = () => {
-    if (!catalogue || !selectedSlideForHotspots) return []
+    if (!catalogue || !selectedSlide) return []
 
-    const slideHotspots = selectedSlideForHotspots.hotspots || []
+    const slideHotspots = selectedSlide.hotspots || []
     const usedProductIds = slideHotspots.map((h) => h.productId)
     return catalogue.products.filter((p) => !usedProductIds.includes(p.id))
   }
@@ -434,17 +406,14 @@ export default function EditorPage() {
     return catalogue.products.find((p) => p.id === hotspot.productId)
   }
 
-  // Get all hotspots across all slides
-  const getAllHotspots = () => {
-    if (!catalogue) return []
+  // Get all hotspots for the current slide
+  const getCurrentSlideHotspots = () => {
+    if (!selectedSlide) return []
 
-    return catalogue.slides.flatMap((slide) =>
-      slide.hotspots.map((hotspot) => ({
-        ...hotspot,
-        slideName: `Slide ${catalogue.slides.indexOf(slide) + 1}`,
-        productName: getProductForHotspot(hotspot)?.name || "Unknown Product",
-      })),
-    )
+    return selectedSlide.hotspots.map((hotspot) => ({
+      ...hotspot,
+      productName: getProductForHotspot(hotspot)?.name || "Unknown Product",
+    }))
   }
 
   if (loading) {
@@ -475,18 +444,15 @@ export default function EditorPage() {
 
   return (
     <AdminLayout>
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold tracking-tight">Catalogue Editor</h1>
         <div className="flex gap-2 items-center">
           {hasUnsavedChanges && (
             <span className="text-sm text-amber-600 dark:text-amber-400">You have unsaved changes</span>
           )}
-          <Button variant="outline" onClick={handleCopyLink}>
-            <LinkIcon className="h-4 w-4 mr-2" />
-            Copy Link
-          </Button>
           <Button variant="outline" asChild>
-            <Link href={`/catalogue/${customLink || catalogue.slug}`} className="flex items-center gap-2">
+            <Link href={`/catalogue/${catalogue.customLink || catalogue.slug}`} className="flex items-center gap-2">
               <Eye className="h-4 w-4" />
               Preview
             </Link>
@@ -498,535 +464,483 @@ export default function EditorPage() {
         </div>
       </div>
 
-      {/* Custom Link Section */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <LinkIcon className="h-5 w-5" />
-            Custom Share Link
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <Label htmlFor="custom-link">Custom Link (optional)</Label>
-              <div className="flex mt-1">
-                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
-                  {window.location.origin}/catalogue/
-                </span>
-                <Input
-                  id="custom-link"
-                  value={customLink}
-                  onChange={(e) => setCustomLink(e.target.value)}
-                  placeholder={catalogue.slug}
-                  className="rounded-l-none"
-                />
-              </div>
-            </div>
-            <div className="flex items-end">
-              <Button onClick={handleSaveCustomLink}>Save Link</Button>
-            </div>
-          </div>
-          <p className="text-sm text-muted-foreground mt-2">
-            Create a custom short link for easy sharing. Leave empty to use the default slug.
-          </p>
-        </CardContent>
-      </Card>
+      {/* Two Panel Layout */}
+      <div className="grid grid-cols-2 gap-6 h-[calc(100vh-200px)]">
+        {/* Left Panel - Functions */}
+        <Card className="h-full">
+          <CardContent className="p-0 h-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+              <TabsList className="grid w-full grid-cols-3 m-4 mb-0">
+                <TabsTrigger value="slides">Slides</TabsTrigger>
+                <TabsTrigger value="products">Products</TabsTrigger>
+                <TabsTrigger value="hotspots">Hotspots</TabsTrigger>
+              </TabsList>
 
-      <div className="grid grid-cols-12 gap-6">
-        {/* Left Sidebar - Slides Panel */}
-        <div className="col-span-3">
-          <Card className="h-[calc(100vh-200px)]">
-            <CardHeader>
-              <CardTitle className="text-lg">Slides</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="space-y-2 p-4 max-h-[calc(100vh-300px)] overflow-y-auto">
-                {catalogue.slides.map((slide, index) => (
-                  <div
-                    key={slide.id}
-                    className={`relative w-full aspect-video rounded-md overflow-hidden cursor-pointer border-2 ${
-                      selectedSlide?.id === slide.id ? "border-primary" : "border-transparent"
-                    } hover:border-primary/50 transition-colors`}
-                    onClick={() => handleSelectSlide(slide)}
-                  >
-                    <img
-                      src={slide.imageUrl || "/placeholder.svg"}
-                      alt={`Slide ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 text-center">
-                      Slide {index + 1}
-                    </div>
-                    {slide.hotspots.length > 0 && (
-                      <div className="absolute top-1 right-1 bg-primary text-white text-xs px-1 rounded">
-                        {slide.hotspots.length}
-                      </div>
-                    )}
+              <TabsContent value="slides" className="flex-1 overflow-hidden m-4 mt-4">
+                <div className="h-full flex flex-col">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-medium">Slides</h3>
+                    <Button size="sm" onClick={handleAddSlide}>
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add Slide
+                    </Button>
                   </div>
-                ))}
-                <Button variant="outline" className="w-full aspect-video border-dashed" onClick={handleAddSlide}>
-                  <Plus className="h-6 w-6" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
 
-        {/* Center - Main Preview */}
-        <div className="col-span-6">
-          <Card className="h-[calc(100vh-200px)]">
-            <CardContent className="p-6 h-full flex flex-col">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-medium">
-                  Preview - {selectedSlide && `Slide ${catalogue.slides.indexOf(selectedSlide) + 1}`}
-                </h3>
-                {selectedSlide && (
-                  <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-                    <Upload className="h-4 w-4 mr-2" />
-                    {uploading ? "Uploading..." : "Upload Image"}
-                  </Button>
-                )}
-              </div>
-
-              <div className="flex-1 flex items-center justify-center">
-                <div
-                  className="relative w-full max-w-4xl rounded-md overflow-hidden bg-muted border cursor-crosshair"
-                  style={{ aspectRatio: "16/9" }}
-                  onClick={handleSlideClick}
-                >
-                  {selectedSlide ? (
-                    <>
-                      <img
-                        src={selectedSlide.imageUrl || "/placeholder.svg"}
-                        alt="Preview"
-                        className="w-full h-full object-contain"
-                      />
-
-                      {selectedSlide.hotspots.map((hotspot) => (
+                  <div className="flex-1 overflow-y-auto">
+                    <div className="grid grid-cols-2 gap-3">
+                      {catalogue.slides.map((slide, index) => (
                         <div
-                          key={hotspot.id}
-                          className={`absolute w-6 h-6 rounded-full -translate-x-1/2 -translate-y-1/2 cursor-pointer ${
-                            selectedHotspot?.id === hotspot.id || editingHotspot?.id === hotspot.id
-                              ? "bg-blue-500 ring-2 ring-white"
-                              : "bg-primary/80 animate-pulse"
-                          }`}
-                          style={{ left: `${hotspot.x}%`, top: `${hotspot.y}%` }}
-                          onClick={(e) => handleHotspotClick(hotspot, e)}
-                        />
+                          key={slide.id}
+                          className={`relative rounded-md overflow-hidden cursor-pointer border-2 ${
+                            selectedSlide?.id === slide.id ? "border-primary" : "border-transparent"
+                          } hover:border-primary/50 transition-colors`}
+                          style={{ aspectRatio: "3/4" }}
+                          onClick={() => handleSelectSlide(slide)}
+                        >
+                          <img
+                            src={slide.imageUrl || "/placeholder.svg"}
+                            alt={`Slide ${index + 1}`}
+                            className="w-full h-full object-cover"
+                            style={{ transform: "rotate(90deg)" }}
+                          />
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 text-center">
+                            Slide {index + 1}
+                          </div>
+                          {slide.hotspots.length > 0 && (
+                            <div className="absolute top-1 right-1 bg-primary text-white text-xs px-1 rounded">
+                              {slide.hotspots.length}
+                            </div>
+                          )}
+                        </div>
                       ))}
+                    </div>
+                  </div>
 
-                      {newHotspot && (
-                        <div
-                          className="absolute w-6 h-6 rounded-full border-2 border-primary -translate-x-1/2 -translate-y-1/2"
-                          style={{ left: `${newHotspot.x}%`, top: `${newHotspot.y}%` }}
-                        />
-                      )}
-                    </>
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
+                  {selectedSlide && (
+                    <div className="border-t pt-4 mt-4">
+                      <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                        <Upload className="h-4 w-4 mr-2" />
+                        {uploading ? "Uploading..." : "Upload Image"}
+                      </Button>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleSlideImageUpload}
+                      />
                     </div>
                   )}
                 </div>
-              </div>
+              </TabsContent>
 
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept="image/*"
-                onChange={handleSlideImageUpload}
-              />
-
-              {/* Selected Hotspot Info */}
-              {selectedHotspot && !editingHotspot && (
-                <div className="mt-4 p-3 border rounded-md">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-medium">Selected Hotspot</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Product: {getProductForHotspot(selectedHotspot)?.name}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Position: {selectedHotspot.x.toFixed(2)}%, {selectedHotspot.y.toFixed(2)}%
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={handleEditHotspot}>
-                        <Edit className="h-4 w-4 mr-1" />
-                        Edit
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={handleDeleteHotspot}>
-                        <Trash className="h-4 w-4 mr-1" />
-                        Delete
-                      </Button>
-                    </div>
+              <TabsContent value="products" className="flex-1 overflow-hidden m-4 mt-4">
+                <div className="h-full flex flex-col">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-medium">Products</h3>
+                    <Button size="sm" onClick={handleAddProduct}>
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add Product
+                    </Button>
                   </div>
-                </div>
-              )}
 
-              {/* Editing Hotspot Info */}
-              {editingHotspot && (
-                <div className="mt-4 p-3 border border-blue-500 rounded-md bg-blue-50 dark:bg-blue-950">
-                  <p className="font-medium text-blue-600 dark:text-blue-400">Editing Hotspot</p>
-                  <p className="text-sm">Click on the image to reposition the hotspot.</p>
-                </div>
-              )}
-
-              {/* New Hotspot Confirmation */}
-              {newHotspot && selectedProduct && (
-                <div className="mt-4 p-3 border rounded-md bg-green-50 dark:bg-green-950">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{selectedProduct.name} Hotspot</p>
-                      <p className="text-sm text-muted-foreground">
-                        Position: {newHotspot.x.toFixed(2)}%, {newHotspot.y.toFixed(2)}%
-                      </p>
-                    </div>
-                    <Button onClick={handleAddHotspot}>Add Hotspot</Button>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Sidebar - Content Panel */}
-        <div className="col-span-3">
-          <Card className="h-[calc(100vh-200px)]">
-            <CardContent className="p-0 h-full">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-                <TabsList className="grid w-full grid-cols-2 m-4 mb-0">
-                  <TabsTrigger value="products">Products</TabsTrigger>
-                  <TabsTrigger value="hotspots">Hotspots</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="products" className="flex-1 overflow-hidden m-4 mt-4">
-                  <div className="h-full flex flex-col">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-medium">Products</h3>
-                      <Button size="sm" onClick={handleAddProduct}>
-                        <Plus className="h-4 w-4 mr-1" />
-                        Add
-                      </Button>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto space-y-2">
-                      {catalogue.products.map((product) => (
-                        <div
-                          key={product.id}
-                          className={`p-3 rounded-md cursor-pointer border text-sm ${
-                            selectedProduct?.id === product.id
-                              ? "border-primary bg-primary/5"
-                              : "border-muted hover:border-primary/50"
-                          } transition-colors`}
-                          onClick={() => setSelectedProduct(product)}
-                        >
-                          <div className="flex items-start gap-2">
-                            <img
-                              src={product.images[0] || "/placeholder.svg"}
-                              alt={product.name}
-                              className="w-10 h-10 rounded object-cover flex-shrink-0"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-medium truncate">{product.name}</h4>
+                  <div className="flex-1 overflow-y-auto space-y-2">
+                    {catalogue.products.map((product) => (
+                      <div
+                        key={product.id}
+                        className={`p-3 rounded-md cursor-pointer border text-sm ${
+                          selectedProduct?.id === product.id
+                            ? "border-primary bg-primary/5"
+                            : "border-muted hover:border-primary/50"
+                        } transition-colors`}
+                        onClick={() => setSelectedProduct(product)}
+                      >
+                        <div className="flex items-start gap-2">
+                          <img
+                            src={product.images[0] || "/placeholder.svg"}
+                            alt={product.name}
+                            className="w-10 h-10 rounded object-cover flex-shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium truncate">{product.name}</h4>
+                            <p className="text-xs text-muted-foreground">
+                              ₱{product.price.toFixed(2)} • MOQ: {product.moq}
+                            </p>
+                            {product.customizationOptions.length > 0 && (
                               <p className="text-xs text-muted-foreground">
-                                ₱{product.price.toFixed(2)} • MOQ: {product.moq}
+                                {product.customizationOptions.length} option(s)
                               </p>
-                              {product.customizationOptions.length > 0 && (
-                                <p className="text-xs text-muted-foreground">
-                                  {product.customizationOptions.length} option(s)
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {selectedProduct && (
-                      <div className="border-t pt-4 mt-4 space-y-3">
-                        <h4 className="font-medium">Edit Product</h4>
-                        <div className="space-y-2">
-                          <Input
-                            value={selectedProduct.name}
-                            onChange={(e) => handleUpdateProduct("name", e.target.value)}
-                            placeholder="Product name"
-                            className="text-sm"
-                          />
-                          <div className="grid grid-cols-2 gap-2">
-                            <Input
-                              type="number"
-                              value={selectedProduct.price}
-                              onChange={(e) => handleUpdateProduct("price", Number.parseFloat(e.target.value))}
-                              placeholder="Price"
-                              className="text-sm"
-                            />
-                            <Input
-                              type="number"
-                              value={selectedProduct.moq}
-                              onChange={(e) => handleUpdateProduct("moq", Number.parseInt(e.target.value))}
-                              placeholder="MOQ"
-                              className="text-sm"
-                            />
-                          </div>
-                          <Textarea
-                            value={selectedProduct.description}
-                            onChange={(e) => handleUpdateProduct("description", e.target.value)}
-                            placeholder="Description"
-                            rows={2}
-                            className="text-sm"
-                          />
-                        </div>
-
-                        {/* Product Images */}
-                        <div>
-                          <Label className="text-sm">Images</Label>
-                          <div className="grid grid-cols-3 gap-1 mt-1">
-                            {selectedProduct.images.map((image, index) => (
-                              <div key={index} className="relative group">
-                                <img
-                                  src={image || "/placeholder.svg"}
-                                  alt={`${selectedProduct.name} ${index + 1}`}
-                                  className="w-full aspect-square object-cover rounded border"
-                                />
-                                <button
-                                  className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleRemoveProductImage(index)
-                                  }}
-                                >
-                                  <X className="h-2 w-2" />
-                                </button>
-                              </div>
-                            ))}
-                            <button
-                              className="border-2 border-dashed border-muted-foreground rounded aspect-square flex items-center justify-center hover:bg-muted/50"
-                              onClick={() => productImageInputRef.current?.click()}
-                            >
-                              <Plus className="h-4 w-4 text-muted-foreground" />
-                            </button>
-                          </div>
-                          <input
-                            type="file"
-                            ref={productImageInputRef}
-                            className="hidden"
-                            accept="image/*"
-                            onChange={handleProductImageUpload}
-                            multiple
-                          />
-                        </div>
-
-                        {/* Customization Options */}
-                        <div>
-                          <div className="flex items-center justify-between">
-                            <Label className="text-sm">Customization Options</Label>
-                            <Button size="sm" variant="outline" onClick={handleAddCustomizationOption}>
-                              <Plus className="h-3 w-3 mr-1" />
-                              Add
-                            </Button>
-                          </div>
-                          <div className="space-y-2 mt-2">
-                            {selectedProduct.customizationOptions.map((option) => (
-                              <div key={option.id} className="flex gap-2 items-center">
-                                <Input
-                                  value={option.label}
-                                  onChange={(e) => handleUpdateCustomizationOption(option.id, "label", e.target.value)}
-                                  placeholder="Option name"
-                                  className="text-sm flex-1"
-                                />
-                                <Input
-                                  type="number"
-                                  value={option.price}
-                                  onChange={(e) =>
-                                    handleUpdateCustomizationOption(
-                                      option.id,
-                                      "price",
-                                      Number.parseFloat(e.target.value),
-                                    )
-                                  }
-                                  placeholder="Price"
-                                  className="text-sm w-20"
-                                />
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleRemoveCustomizationOption(option.id)}
-                                >
-                                  <X className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            ))}
+                            )}
                           </div>
                         </div>
                       </div>
-                    )}
+                    ))}
                   </div>
-                </TabsContent>
 
-                <TabsContent value="hotspots" className="flex-1 overflow-hidden m-4 mt-4">
-                  <div className="h-full flex flex-col">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-medium">Hotspots</h3>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button size="sm">
-                            <Plus className="h-4 w-4 mr-1" />
+                  {selectedProduct && (
+                    <div className="border-t pt-4 mt-4 space-y-3 max-h-96 overflow-y-auto">
+                      <h4 className="font-medium">Edit Product</h4>
+                      <div className="space-y-2">
+                        <Input
+                          value={selectedProduct.name}
+                          onChange={(e) => handleUpdateProduct("name", e.target.value)}
+                          placeholder="Product name"
+                          className="text-sm"
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input
+                            type="number"
+                            value={selectedProduct.price}
+                            onChange={(e) => handleUpdateProduct("price", Number.parseFloat(e.target.value))}
+                            placeholder="Price"
+                            className="text-sm"
+                          />
+                          <Input
+                            type="number"
+                            value={selectedProduct.moq}
+                            onChange={(e) => handleUpdateProduct("moq", Number.parseInt(e.target.value))}
+                            placeholder="MOQ"
+                            className="text-sm"
+                          />
+                        </div>
+                        <Textarea
+                          value={selectedProduct.description}
+                          onChange={(e) => handleUpdateProduct("description", e.target.value)}
+                          placeholder="Description"
+                          rows={2}
+                          className="text-sm"
+                        />
+                      </div>
+
+                      {/* Product Images */}
+                      <div>
+                        <Label className="text-sm">Images</Label>
+                        <div className="grid grid-cols-3 gap-1 mt-1">
+                          {selectedProduct.images.map((image, index) => (
+                            <div key={index} className="relative group">
+                              <img
+                                src={image || "/placeholder.svg"}
+                                alt={`${selectedProduct.name} ${index + 1}`}
+                                className="w-full aspect-square object-cover rounded border"
+                              />
+                              <button
+                                className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleRemoveProductImage(index)
+                                }}
+                              >
+                                <X className="h-2 w-2" />
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            className="border-2 border-dashed border-muted-foreground rounded aspect-square flex items-center justify-center hover:bg-muted/50"
+                            onClick={() => productImageInputRef.current?.click()}
+                          >
+                            <Plus className="h-4 w-4 text-muted-foreground" />
+                          </button>
+                        </div>
+                        <input
+                          type="file"
+                          ref={productImageInputRef}
+                          className="hidden"
+                          accept="image/*"
+                          onChange={handleProductImageUpload}
+                          multiple
+                        />
+                      </div>
+
+                      {/* Customization Options */}
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm">Customization Options</Label>
+                          <Button size="sm" variant="outline" onClick={handleAddCustomizationOption}>
+                            <Plus className="h-3 w-3 mr-1" />
                             Add
                           </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Select Product for Hotspot</DialogTitle>
-                            <DialogDescription>
-                              Choose a product to associate with the new hotspot on{" "}
-                              {selectedSlideForHotspots &&
-                                `Slide ${catalogue.slides.indexOf(selectedSlideForHotspots) + 1}`}
-                              .
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto">
-                              {getAvailableProducts().length === 0 ? (
-                                <p className="text-sm text-muted-foreground text-center py-4">
-                                  All products already have hotspots on this slide.
-                                </p>
-                              ) : (
-                                getAvailableProducts().map((product) => (
-                                  <div
-                                    key={product.id}
-                                    className={`p-3 rounded-md cursor-pointer border text-sm ${
-                                      selectedProduct?.id === product.id
-                                        ? "border-primary bg-primary/5"
-                                        : "border-muted hover:border-primary/50"
-                                    }`}
-                                    onClick={() => setSelectedProduct(product)}
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <img
-                                        src={product.images[0] || "/placeholder.svg"}
-                                        alt={product.name}
-                                        className="w-8 h-8 rounded object-cover"
-                                      />
-                                      <div>
-                                        <h4 className="font-medium">{product.name}</h4>
-                                        <p className="text-xs text-muted-foreground">
-                                          ₱{product.price.toFixed(2)} • MOQ: {product.moq}
-                                        </p>
-                                      </div>
+                        </div>
+                        <div className="space-y-2 mt-2">
+                          {selectedProduct.customizationOptions.map((option) => (
+                            <div key={option.id} className="flex gap-2 items-center">
+                              <Input
+                                value={option.label}
+                                onChange={(e) => handleUpdateCustomizationOption(option.id, "label", e.target.value)}
+                                placeholder="Option name"
+                                className="text-sm flex-1"
+                              />
+                              <Input
+                                type="number"
+                                value={option.price}
+                                onChange={(e) =>
+                                  handleUpdateCustomizationOption(option.id, "price", Number.parseFloat(e.target.value))
+                                }
+                                placeholder="Price"
+                                className="text-sm w-20"
+                              />
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleRemoveCustomizationOption(option.id)}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="hotspots" className="flex-1 overflow-hidden m-4 mt-4">
+                <div className="h-full flex flex-col">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-medium">Hotspots</h3>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button size="sm">
+                          <Plus className="h-4 w-4 mr-1" />
+                          Add Hotspot
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Select Product for Hotspot</DialogTitle>
+                          <DialogDescription>
+                            Choose a product to associate with the new hotspot on{" "}
+                            {selectedSlide && `Slide ${catalogue.slides.indexOf(selectedSlide) + 1}`}.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                          <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto">
+                            {getAvailableProducts().length === 0 ? (
+                              <p className="text-sm text-muted-foreground text-center py-4">
+                                All products already have hotspots on this slide.
+                              </p>
+                            ) : (
+                              getAvailableProducts().map((product) => (
+                                <div
+                                  key={product.id}
+                                  className={`p-3 rounded-md cursor-pointer border text-sm ${
+                                    selectedProduct?.id === product.id
+                                      ? "border-primary bg-primary/5"
+                                      : "border-muted hover:border-primary/50"
+                                  }`}
+                                  onClick={() => setSelectedProduct(product)}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <img
+                                      src={product.images[0] || "/placeholder.svg"}
+                                      alt={product.name}
+                                      className="w-8 h-8 rounded object-cover"
+                                    />
+                                    <div>
+                                      <h4 className="font-medium">{product.name}</h4>
+                                      <p className="text-xs text-muted-foreground">
+                                        ₱{product.price.toFixed(2)} • MOQ: {product.moq}
+                                      </p>
                                     </div>
                                   </div>
-                                ))
-                              )}
-                            </div>
+                                </div>
+                              ))
+                            )}
                           </div>
-                          <DialogFooter>
+                        </div>
+                        <DialogFooter>
+                          <Button
+                            onClick={() => {
+                              // Auto-close the dialog
+                              const closeButton = document.querySelector(
+                                '[data-state="open"] button[aria-label="Close"]',
+                              ) as HTMLElement
+                              if (closeButton) closeButton.click()
+
+                              toast({
+                                title: "Product Selected",
+                                description: selectedProduct
+                                  ? `${selectedProduct.name} selected. Now click on the image to place a hotspot.`
+                                  : "Please select a product first.",
+                              })
+                            }}
+                            disabled={!selectedProduct}
+                          >
+                            Select Product & Close
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground mb-4">
+                    {selectedProduct
+                      ? `Click on the preview image to add a hotspot for ${selectedProduct.name}`
+                      : "Select a product first, then click on the preview image to add a hotspot"}
+                  </p>
+
+                  <div className="flex-1 overflow-y-auto space-y-2">
+                    {getCurrentSlideHotspots().map((hotspot) => (
+                      <div
+                        key={hotspot.id}
+                        className={`p-3 rounded-md border text-sm cursor-pointer ${
+                          selectedHotspot?.id === hotspot.id
+                            ? "border-primary bg-primary/5"
+                            : "border-muted hover:border-primary/50"
+                        } transition-colors`}
+                        onClick={() => setSelectedHotspot(hotspot)}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{hotspot.productName}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Position: {hotspot.x.toFixed(1)}%, {hotspot.y.toFixed(1)}%
+                            </p>
+                          </div>
+                          <div className="flex gap-1 ml-2">
                             <Button
-                              onClick={() => {
-                                // Auto-close the dialog
-                                const closeButton = document.querySelector(
-                                  '[data-state="open"] button[aria-label="Close"]',
-                                ) as HTMLElement
-                                if (closeButton) closeButton.click()
-
-                                toast({
-                                  title: "Product Selected",
-                                  description: selectedProduct
-                                    ? `${selectedProduct.name} selected. Now click on the image to place a hotspot.`
-                                    : "Please select a product first.",
-                                })
+                              size="sm"
+                              variant="outline"
+                              className="h-6 w-6 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedHotspot(hotspot)
+                                handleEditHotspot()
                               }}
-                              disabled={!selectedProduct}
                             >
-                              Select Product & Close
+                              <Edit className="h-3 w-3" />
                             </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-
-                    <p className="text-xs text-muted-foreground mb-4">
-                      {selectedProduct
-                        ? `Click on the image to add a hotspot for ${selectedProduct.name}`
-                        : "Select a product first, then click on the image to add a hotspot"}
-                    </p>
-
-                    <div className="flex-1 overflow-y-auto space-y-2">
-                      {getAllHotspots().map((hotspot) => (
-                        <div
-                          key={hotspot.id}
-                          className={`p-3 rounded-md border text-sm cursor-pointer ${
-                            selectedHotspot?.id === hotspot.id
-                              ? "border-primary bg-primary/5"
-                              : "border-muted hover:border-primary/50"
-                          } transition-colors`}
-                          onClick={() => {
-                            setSelectedHotspot(hotspot)
-                            const slide = catalogue.slides.find((s) => s.id === hotspot.slideId)
-                            if (slide) {
-                              setSelectedSlideForHotspots(slide)
-                              setSelectedSlide(slide)
-                            }
-                          }}
-                        >
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate">{hotspot.productName}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {hotspot.slideName} • {hotspot.x.toFixed(1)}%, {hotspot.y.toFixed(1)}%
-                              </p>
-                            </div>
-                            <div className="flex gap-1 ml-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-6 w-6 p-0"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setSelectedHotspot(hotspot)
-                                  const slide = catalogue.slides.find((s) => s.id === hotspot.slideId)
-                                  if (slide) {
-                                    setSelectedSlideForHotspots(slide)
-                                    setSelectedSlide(slide)
-                                  }
-                                  handleEditHotspot()
-                                }}
-                              >
-                                <Edit className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-6 w-6 p-0"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setSelectedHotspot(hotspot)
-                                  handleDeleteHotspot()
-                                }}
-                              >
-                                <Trash className="h-3 w-3" />
-                              </Button>
-                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-6 w-6 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedHotspot(hotspot)
+                                handleDeleteHotspot()
+                              }}
+                            >
+                              <Trash className="h-3 w-3" />
+                            </Button>
                           </div>
                         </div>
-                      ))}
+                      </div>
+                    ))}
 
-                      {getAllHotspots().length === 0 && (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <ImageIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                          <p className="text-sm">No hotspots yet</p>
-                          <p className="text-xs">Add products and place hotspots on slides</p>
-                        </div>
-                      )}
+                    {getCurrentSlideHotspots().length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <ImageIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">No hotspots on this slide</p>
+                        <p className="text-xs">Add products and place hotspots</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+
+        {/* Right Panel - Preview */}
+        <Card className="h-full">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Preview - {selectedSlide && `Slide ${catalogue.slides.indexOf(selectedSlide) + 1}`}</span>
+              {editingHotspot && (
+                <span className="text-sm text-blue-600 dark:text-blue-400">Click to reposition hotspot</span>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="h-full pb-6">
+            <div className="h-full flex items-center justify-center">
+              <div
+                className="relative w-full max-w-md rounded-md overflow-hidden bg-muted border cursor-crosshair"
+                style={{ aspectRatio: "3/4" }}
+                onClick={handleSlideClick}
+              >
+                {selectedSlide ? (
+                  <>
+                    <img
+                      src={selectedSlide.imageUrl || "/placeholder.svg"}
+                      alt="Preview"
+                      className="w-full h-full object-contain"
+                      style={{ transform: "rotate(90deg)" }}
+                    />
+
+                    {selectedSlide.hotspots.map((hotspot) => (
+                      <div
+                        key={hotspot.id}
+                        className={`absolute w-6 h-6 rounded-full -translate-x-1/2 -translate-y-1/2 cursor-pointer ${
+                          selectedHotspot?.id === hotspot.id || editingHotspot?.id === hotspot.id
+                            ? "bg-blue-500 ring-2 ring-white"
+                            : "bg-primary/80 animate-pulse hover:bg-primary"
+                        } transition-colors`}
+                        style={{ left: `${hotspot.x}%`, top: `${hotspot.y}%` }}
+                        onClick={(e) => handleHotspotClick(hotspot, e)}
+                      />
+                    ))}
+
+                    {newHotspot && (
+                      <div
+                        className="absolute w-6 h-6 rounded-full border-2 border-primary bg-primary/20 -translate-x-1/2 -translate-y-1/2"
+                        style={{ left: `${newHotspot.x}%`, top: `${newHotspot.y}%` }}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                      <ImageIcon className="h-12 w-12 text-muted-foreground/50 mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">Select a slide to preview</p>
                     </div>
                   </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        </div>
+                )}
+              </div>
+            </div>
+
+            {/* New Hotspot Confirmation */}
+            {newHotspot && selectedProduct && (
+              <div className="mt-4 p-3 border rounded-md bg-green-50 dark:bg-green-950">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">{selectedProduct.name} Hotspot</p>
+                    <p className="text-sm text-muted-foreground">
+                      Position: {newHotspot.x.toFixed(2)}%, {newHotspot.y.toFixed(2)}%
+                    </p>
+                  </div>
+                  <Button onClick={handleAddHotspot}>Add Hotspot</Button>
+                </div>
+              </div>
+            )}
+
+            {/* Selected Hotspot Info */}
+            {selectedHotspot && !editingHotspot && (
+              <div className="mt-4 p-3 border rounded-md">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-medium">Selected Hotspot</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Product: {getProductForHotspot(selectedHotspot)?.name}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Position: {selectedHotspot.x.toFixed(2)}%, {selectedHotspot.y.toFixed(2)}%
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={handleEditHotspot}>
+                      <Edit className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleDeleteHotspot}>
+                      <Trash className="h-4 w-4 mr-1" />
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </AdminLayout>
   )
