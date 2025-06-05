@@ -248,32 +248,6 @@ export default function DashboardPage() {
     }
   }
 
-  const handleUpdateCustomLink = async (catalogueId: string, customLink: string) => {
-    try {
-      const response = await fetch(`/api/catalogues/${catalogueId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customLink: customLink || undefined }),
-      })
-
-      if (response.ok) {
-        const updatedCatalogue = await response.json()
-        setCatalogues(catalogues.map((cat) => (cat.id === catalogueId ? updatedCatalogue : cat)))
-        toast({
-          title: "Success",
-          description: "Custom link updated successfully",
-        })
-      }
-    } catch (error) {
-      console.error("Error updating custom link:", error)
-      toast({
-        title: "Error",
-        description: "Failed to update custom link",
-        variant: "destructive",
-      })
-    }
-  }
-
   const catalogueGridCols = "grid gap-8 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-2"
 
   if (loading) {
@@ -366,7 +340,7 @@ export default function DashboardPage() {
                     <img
                       src={catalogue.slides[0].imageUrl || "/placeholder.svg"}
                       alt={catalogue.name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                     />
                   ) : (
                     <p className="text-sm text-muted-foreground">No cover image</p>
@@ -507,30 +481,6 @@ export default function DashboardPage() {
                           {/* Generate Password-Protected Link Section */}
                           <div className="space-y-4 border-t pt-4">
                             <h4 className="font-medium">Generate Password-Protected Link</h4>
-
-                            {/* Add Custom Link Section */}
-                            <div className="grid gap-2">
-                              <Label htmlFor="custom-link">Custom Link (optional)</Label>
-                              <div className="flex">
-                                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
-                                  {window.location.origin}/catalogue/
-                                </span>
-                                <Input
-                                  id="custom-link"
-                                  value={catalogue.customLink || ""}
-                                  onChange={(e) => {
-                                    // Update catalogue custom link
-                                    handleUpdateCustomLink(catalogue.id, e.target.value)
-                                  }}
-                                  placeholder={catalogue.slug}
-                                  className="rounded-l-none"
-                                />
-                              </div>
-                              <p className="text-xs text-muted-foreground">
-                                Create a custom short link. Leave empty to use default slug.
-                              </p>
-                            </div>
-
                             <div className="grid gap-2">
                               <Label htmlFor="share-link-name">Link Name</Label>
                               <Input
@@ -623,6 +573,4 @@ export default function DashboardPage() {
           </Card>
         ))}
       </div>
-    </AdminLayout>
-  )
-}
+    \

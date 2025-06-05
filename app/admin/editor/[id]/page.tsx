@@ -56,7 +56,6 @@ export default function EditorPage() {
         setCatalogue(data)
         if (data.slides.length > 0) {
           setSelectedSlide(data.slides[0])
-          // Start with slide 1 display
         }
       } else {
         console.error("Catalogue not found")
@@ -126,6 +125,39 @@ export default function EditorPage() {
     setCatalogue(updatedCatalogue)
     setSelectedSlide(newSlide)
     setHasUnsavedChanges(true)
+  }
+
+  const handleDeleteSlide = (slideId: string) => {
+    if (!catalogue) return
+
+    // Don't allow deleting the last slide
+    if (catalogue.slides.length <= 1) {
+      toast({
+        title: "Cannot Delete",
+        description: "You must have at least one slide in the catalogue.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const updatedSlides = catalogue.slides.filter((slide) => slide.id !== slideId)
+    const updatedCatalogue = {
+      ...catalogue,
+      slides: updatedSlides,
+    }
+
+    // If we're deleting the currently selected slide, select the first slide
+    if (selectedSlide?.id === slideId) {
+      setSelectedSlide(updatedSlides[0])
+    }
+
+    setCatalogue(updatedCatalogue)
+    setHasUnsavedChanges(true)
+
+    toast({
+      title: "Slide Deleted",
+      description: "The slide has been removed from the catalogue.",
+    })
   }
 
   const handleSelectSlide = (slide: Slide) => {
@@ -501,7 +533,7 @@ export default function EditorPage() {
                           <img
                             src={slide.imageUrl || "/placeholder.svg"}
                             alt={`Slide ${index + 1}`}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-contain"
                           />
                           <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 text-center">
                             Slide {index + 1}
@@ -511,16 +543,40 @@ export default function EditorPage() {
                               {slide.hotspots.length}
                             </div>
                           )}
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-1 left-1 h-6 w-6 opacity-0 hover:opacity-100 transition-opacity"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeleteSlide(slide.id)
+                            }}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
                         </div>
                       ))}
                     </div>
                   </div>
 
                   {selectedSlide && (
-                    <div className="border-t pt-4 mt-4">
+                    <div className="border-t pt-4 mt-4 flex justify-between">
                       <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
                         <Upload className="h-4 w-4 mr-2" />
                         {uploading ? "Uploading..." : "Upload Image"}
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => {
+                          if (selectedSlide) {
+                            handleDeleteSlide(selectedSlide.id)
+                          }
+                        }}
+                        disabled={catalogue.slides.length <= 1}
+                      >
+                        <Trash className="h-4 w-4 mr-1" />
+                        Delete Slide
                       </Button>
                       <input
                         type="file"
@@ -821,7 +877,8 @@ export default function EditorPage() {
                     </div>
                   )}
 
-                  <div className="flex-1 overflow-y-auto space-y-2">
+                  <div className="flex-1 overflow-y-auto space-y-2 mt-4">
+                    <h4 className="font-medium text-sm mb-2">Hotspots on Current Slide</h4>
                     {getCurrentSlideHotspots().map((hotspot) => (
                       <div
                         key={hotspot.id}
