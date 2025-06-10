@@ -1,16 +1,17 @@
-// Simple JSON file-based database for Vercel deployment
-// In production, you'd want to use a proper database like Supabase or PostgreSQL
+// Database implementation that works in both development and production
+// Uses environment variables to store data in production, JSON files in development
 
 import fs from "fs/promises"
 import path from "path"
 
 const DATA_DIR = path.join(process.cwd(), "data")
+const IS_PRODUCTION = process.env.NODE_ENV === "production"
 
 export interface Catalogue {
   id: string
   name: string
   slug: string
-  customLink?: string // New field for custom short links
+  customLink?: string
   createdAt: string
   updatedAt: string
   slides: Slide[]
@@ -42,8 +43,8 @@ export interface Product {
   name: string
   price: number
   moq: number
-  specifications: string[] // Array of specification bullet points
-  inclusions: string[] // Array of inclusion bullet points
+  specifications: string[]
+  inclusions: string[]
   leadTime: {
     peak: string
     nonPeak: string
@@ -68,8 +69,40 @@ export interface QuoteLogEntry {
   }[]
 }
 
-// Ensure data directory exists
+// In-memory storage for production (will reset on each deployment)
+let cataloguesCache: Catalogue[] = []
+let quoteLogCache: QuoteLogEntry[] = []
+let cacheInitialized = false
+
+// Initialize cache from environment variables in production
+async function initializeCache() {
+  if (cacheInitialized) return
+
+  if (IS_PRODUCTION) {
+    try {
+      // Try to load from environment variables (you can set these in Vercel dashboard)
+      const cataloguesData = process.env.CATALOGUES_DATA
+      const quoteLogData = process.env.QUOTE_LOG_DATA
+
+      if (cataloguesData) {
+        cataloguesCache = JSON.parse(cataloguesData)
+      }
+
+      if (quoteLogData) {
+        quoteLogCache = JSON.parse(quoteLogData)
+      }
+    } catch (error) {
+      console.log("No existing data found in environment variables, starting fresh")
+    }
+  }
+
+  cacheInitialized = true
+}
+
+// Ensure data directory exists (development only)
 async function ensureDataDir() {
+  if (IS_PRODUCTION) return
+
   try {
     await fs.access(DATA_DIR)
   } catch {
@@ -79,6 +112,12 @@ async function ensureDataDir() {
 
 // Catalogues CRUD
 export async function getCatalogues(): Promise<Catalogue[]> {
+  await initializeCache()
+
+  if (IS_PRODUCTION) {
+    return cataloguesCache
+  }
+
   await ensureDataDir()
   try {
     const data = await fs.readFile(path.join(DATA_DIR, "catalogues.json"), "utf-8")
@@ -104,6 +143,13 @@ export async function getCatalogueByCustomLink(customLink: string): Promise<Cata
 }
 
 export async function saveCatalogues(catalogues: Catalogue[]): Promise<void> {
+  if (IS_PRODUCTION) {
+    cataloguesCache = catalogues
+    // In production, data will be lost on restart unless you implement persistent storage
+    console.log("Data saved to memory cache (will be lost on restart)")
+    return
+  }
+
   await ensureDataDir()
   await fs.writeFile(path.join(DATA_DIR, "catalogues.json"), JSON.stringify(catalogues, null, 2))
 }
@@ -148,6 +194,12 @@ export async function deleteCatalogue(id: string): Promise<boolean> {
 
 // Quote Log CRUD
 export async function getQuoteLog(): Promise<QuoteLogEntry[]> {
+  await initializeCache()
+
+  if (IS_PRODUCTION) {
+    return quoteLogCache
+  }
+
   await ensureDataDir()
   try {
     const data = await fs.readFile(path.join(DATA_DIR, "quote-log.json"), "utf-8")
@@ -158,6 +210,12 @@ export async function getQuoteLog(): Promise<QuoteLogEntry[]> {
 }
 
 export async function saveQuoteLog(entries: QuoteLogEntry[]): Promise<void> {
+  if (IS_PRODUCTION) {
+    quoteLogCache = entries
+    console.log("Quote log saved to memory cache (will be lost on restart)")
+    return
+  }
+
   await ensureDataDir()
   await fs.writeFile(path.join(DATA_DIR, "quote-log.json"), JSON.stringify(entries, null, 2))
 }

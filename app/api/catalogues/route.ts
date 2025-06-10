@@ -19,6 +19,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Name and slug are required" }, { status: 400 })
     }
 
+    console.log("Creating catalogue:", { name, slug })
+
     const catalogue = await createCatalogue({
       name,
       slug,
@@ -26,8 +28,17 @@ export async function POST(request: NextRequest) {
       products: [],
     })
 
+    console.log("Catalogue created successfully:", catalogue.id)
+
     return NextResponse.json(catalogue, { status: 201 })
   } catch (error) {
-    return NextResponse.json({ error: "Failed to create catalogue" }, { status: 500 })
+    console.error("Error creating catalogue:", error)
+    return NextResponse.json(
+      {
+        error: "Failed to create catalogue",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    )
   }
 }

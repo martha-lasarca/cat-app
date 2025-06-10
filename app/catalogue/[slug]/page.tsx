@@ -302,7 +302,7 @@ export default function PublicCataloguePage() {
         </div>
       </main>
 
-      {/* Product Modal - Fixed layout with equal panels and proper spacing */}
+      {/* Product Modal - Fixed layout with equal panels */}
       <Dialog open={!!selectedProduct} onOpenChange={(open) => !open && handleCloseProductModal()}>
         <DialogContent className="sm:max-w-5xl p-0 overflow-hidden">
           {selectedProduct && (
@@ -424,12 +424,15 @@ export default function PublicCataloguePage() {
                   )}
                 </div>
 
-                {/* Bottom section with quantity and add to cart */}
+                {/* Quantity and Add to Quote - Fixed at bottom */}
                 <div className="border-t pt-4 mt-4 space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">QTY</span>
+                      <Label htmlFor="quantity" className="font-medium">
+                        QTY
+                      </Label>
                       <Input
+                        id="quantity"
                         type="number"
                         value={selectedQuantity}
                         onChange={(e) => handleQuantityChange(Number.parseInt(e.target.value || "0"))}
@@ -437,10 +440,14 @@ export default function PublicCataloguePage() {
                         min={selectedProduct.moq}
                       />
                     </div>
-                    <Button onClick={handleAddToCart} type="button">
-                      Add to Quote
-                    </Button>
+                    <div className="text-right">
+                      <div className="text-sm text-muted-foreground">Total</div>
+                      <div className="font-bold">₱{(getTotalPrice() * selectedQuantity).toFixed(2)}</div>
+                    </div>
                   </div>
+                  <Button onClick={handleAddToCart} className="w-full" type="button">
+                    Add to Quote
+                  </Button>
                 </div>
               </div>
             </div>
