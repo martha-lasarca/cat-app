@@ -255,7 +255,7 @@ export default function EditorPage() {
 
     const newOption: CustomizationOption = {
       id: Date.now().toString(),
-      label: "New Option",
+      label: "",
       price: 0,
     }
 
@@ -763,25 +763,25 @@ export default function EditorPage() {
                         </div>
                       </div>
 
-                      {/* Lead Time */}
+                      {/* Lead Time - Switched order: Non-Peak first, then Peak */}
                       <div>
                         <Label className="text-sm font-medium">Lead Time</Label>
                         <div className="space-y-2 mt-2">
-                          <div>
-                            <Label className="text-xs text-muted-foreground">Peak</Label>
-                            <Input
-                              value={selectedProduct.leadTime.peak}
-                              onChange={(e) => handleUpdateLeadTime("peak", e.target.value)}
-                              placeholder="e.g., 15-20 business days"
-                              className="text-sm"
-                            />
-                          </div>
                           <div>
                             <Label className="text-xs text-muted-foreground">Non-Peak</Label>
                             <Input
                               value={selectedProduct.leadTime.nonPeak}
                               onChange={(e) => handleUpdateLeadTime("nonPeak", e.target.value)}
                               placeholder="e.g., 7-10 business days"
+                              className="text-sm"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Peak</Label>
+                            <Input
+                              value={selectedProduct.leadTime.peak}
+                              onChange={(e) => handleUpdateLeadTime("peak", e.target.value)}
+                              placeholder="e.g., 15-20 business days"
                               className="text-sm"
                             />
                           </div>
@@ -827,7 +827,7 @@ export default function EditorPage() {
                         />
                       </div>
 
-                      {/* Customization Options */}
+                      {/* Customization Options - Removed default text */}
                       <div>
                         <div className="flex items-center justify-between">
                           <Label className="text-sm">Customization Options</Label>
