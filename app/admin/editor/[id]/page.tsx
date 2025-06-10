@@ -194,6 +194,11 @@ export default function EditorPage() {
   const handleUpdateProduct = (field: keyof Product, value: any) => {
     if (!selectedProduct || !catalogue) return
 
+    // Handle number fields properly to avoid NaN
+    if (field === "price" || field === "moq") {
+      value = isNaN(value) || value === "" ? 0 : Number(value)
+    }
+
     const updatedProduct = { ...selectedProduct, [field]: value }
     setSelectedProduct(updatedProduct)
 
@@ -265,6 +270,11 @@ export default function EditorPage() {
 
   const handleUpdateCustomizationOption = (optionId: string, field: keyof CustomizationOption, value: any) => {
     if (!selectedProduct) return
+
+    // Handle price field properly to avoid NaN
+    if (field === "price") {
+      value = isNaN(value) || value === "" ? 0 : Number(value)
+    }
 
     const updatedOptions = selectedProduct.customizationOptions.map((option) =>
       option.id === optionId ? { ...option, [field]: value } : option,

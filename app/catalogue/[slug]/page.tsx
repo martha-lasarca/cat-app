@@ -3,8 +3,11 @@
 import { useState, useEffect } from "react"
 import { useParams, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
-import { ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { ChevronLeft, ChevronRight, ShoppingCart, X } from "lucide-react"
 import type { Catalogue, Product, Hotspot } from "@/lib/db"
 
 interface CartItem {
@@ -17,7 +20,7 @@ export default function PublicCataloguePage() {
   const params = useParams()
   const searchParams = useSearchParams()
   const slug = params.slug as string
-  const clientParam = searchParams.get('client')
+  const clientParam = searchParams.get("client")
 
   const [catalogue, setCatalogue] = useState<Catalogue | null>(null)
   const [loading, setLoading] = useState(true)
@@ -299,13 +302,13 @@ export default function PublicCataloguePage() {
         </div>
       </main>
 
-      {/* Product Modal */}
+      {/* Product Modal - Fixed layout with equal panels */}
       <Dialog open={!!selectedProduct} onOpenChange={(open) => !open && handleCloseProductModal()}>
-        <DialogContent className="sm:max-w-4xl p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-5xl p-0 overflow-hidden">
           {selectedProduct && (
             <div className="flex flex-col md:flex-row h-[80vh]">
-              {/* Left side - Mini gallery (40% width) */}
-              <div className="w-full md:w-[40%] bg-muted">
+              {/* Left side - Mini gallery (50% width) */}
+              <div className="w-full md:w-[50%] bg-muted">
                 <div className="relative" style={{ aspectRatio: "1/1" }}>
                   <img
                     src={selectedProduct.images?.[selectedImageIndex] || "/placeholder.svg"}
@@ -334,46 +337,233 @@ export default function PublicCataloguePage() {
                 )}
               </div>
 
-              {/* Right side - Product details (60% width) */}
-              <div className="w-full md:w-[60%] p-6 flex flex-col overflow-y-auto">
-                <h2 className="text-xl font-bold">{selectedProduct.name}</h2>
-                <div className="flex gap-4 mt-1 text-sm text-muted-foreground">
-                  <span>Price per unit (VAT Ex) ₱{getTotalPrice().toFixed(2)}</span>
-                  <span>|</span>
-                  <span>MOQ {selectedProduct.moq} units</span>
+              {/* Right side - Product details (50% width) */}
+              <div className="w-full md:w-[50%] p-6 flex flex-col overflow-y-auto">
+                <div className="flex-1 space-y-4">
+                  <div>
+                    <h2 className="text-xl font-bold break-words">{selectedProduct.name}</h2>
+                    <div className="flex flex-wrap gap-2 mt-1 text-sm text-muted-foreground">
+                      <span>Price per unit (VAT Ex) ₱{getTotalPrice().toFixed(2)}</span>
+                      <span>|</span>
+                      <span>MOQ {selectedProduct.moq} units</span>
+                    </div>
+                  </div>
+
+                  {/* Specifications */}
+                  {selectedProduct.specifications && selectedProduct.specifications.length > 0 && (
+                    <div>
+                      <h3 className="font-medium mb-2">Specifications</h3>
+                      <ul className="text-sm space-y-1">
+                        {selectedProduct.specifications.map((spec, index) => (
+                          <li key={index} className="flex items-start">
+                            <span className="mr-2 flex-shrink-0">•</span>
+                            <span className="break-words">{spec}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Inclusions */}
+                  {selectedProduct.inclusions && selectedProduct.inclusions.length > 0 && (
+                    <div>
+                      <h3 className="font-medium mb-2">Inclusions</h3>
+                      <ul className="text-sm space-y-1">
+                        {selectedProduct.inclusions.map((inclusion, index) => (
+                          <li key={index} className="flex items-start">
+                            <span className="mr-2 flex-shrink-0">•</span>
+                            <span className="break-words">{inclusion}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Lead Time - Non-Peak above Peak */}
+                  {(selectedProduct.leadTime?.peak || selectedProduct.leadTime?.nonPeak) && (
+                    <div>
+                      <h3 className="font-medium mb-2">Lead Time</h3>
+                      <div className="text-sm space-y-1">
+                        {selectedProduct.leadTime.nonPeak && (
+                          <div>
+                            <span className="font-medium">Non-Peak:</span>{" "}
+                            <span className="break-words">{selectedProduct.leadTime.nonPeak}</span>
+                          </div>
+                        )}
+                        {selectedProduct.leadTime.peak && (
+                          <div>
+                            <span className="font-medium">Peak:</span>{" "}
+                            <span className="break-words">{selectedProduct.leadTime.peak}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Customization Options */}
+                  {selectedProduct.customizationOptions && selectedProduct.customizationOptions.length > 0 && (
+                    <div>
+                      <h3 className="font-medium mb-2">Customization Options</h3>
+                      <div className="space-y-2">
+                        {selectedProduct.customizationOptions.map((option) => (
+                          <div key={option.id} className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id={option.id}
+                              className="h-4 w-4"
+                              checked={selectedOptions[option.id] || false}
+                              onChange={() => handleOptionToggle(option.id)}
+                            />
+                            <label htmlFor={option.id} className="text-sm break-words">
+                              {option.label} (+₱{option.price.toFixed(2)})
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Specifications */}
-                {selectedProduct.specifications && selectedProduct.specifications.length > 0 && (
-                  <div className="mt-4">
-                    <h3 className="font-medium mb-2">Specifications</h3>
-                    <ul className="text-sm space-y-1">
-                      {selectedProduct.specifications.map((spec, index) => (
-                        <li key={index} className="flex items-start">
-                          <span className="mr-2">•</span>
-                          <span>{spec}</span>
-                        </li>
-                      ))}
-                    </ul>
+                {/* Quantity and Add to Quote - Fixed at bottom */}
+                <div className="border-t pt-4 mt-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="quantity" className="font-medium">
+                        QTY
+                      </Label>
+                      <Input
+                        id="quantity"
+                        type="number"
+                        value={selectedQuantity}
+                        onChange={(e) => handleQuantityChange(Number.parseInt(e.target.value || "0"))}
+                        className="w-20 h-8 text-center"
+                        min={selectedProduct.moq}
+                      />
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm text-muted-foreground">Total</div>
+                      <div className="font-bold">₱{(getTotalPrice() * selectedQuantity).toFixed(2)}</div>
+                    </div>
                   </div>
-                )}
+                  <Button onClick={handleAddToCart} className="w-full" type="button">
+                    Add to Quote
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
-                {/* Inclusions */}
-                {selectedProduct.inclusions && selectedProduct.inclusions.length > 0 && (
-                  <div className="mt-4">
-                    <h3 className="font-medium mb-2">Inclusions</h3>
-                    <ul className="text-sm space-y-1">
-                      {selectedProduct.inclusions.map((inclusion, index) => (
-                        <li key={index} className="flex items-start">
-                          <span className="mr-2">•</span>
-                          <span>{inclusion}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+      {/* Cart Sidebar */}
+      <div
+        className={`fixed inset-y-0 right-0 w-full sm:w-96 bg-background border-l shadow-lg transform transition-transform duration-300 ease-in-out z-50 ${
+          isCartOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        <div className="flex flex-col h-full">
+          <div className="flex items-center justify-between p-4 border-b">
+            <h2 className="text-xl font-bold">Your Quote</h2>
+            <Button variant="ghost" size="icon" onClick={() => setIsCartOpen(false)}>
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
 
-                {/* Lead Time - Non-Peak above Peak */}
-                {(selectedProduct.leadTime?.peak || selectedProduct.leadTime?.nonPeak) && (
-                  <div className="mt-4">
-                    <h3 className="font-medium mb-2">\
+          <div className="flex-1 overflow-auto p-4">
+            {cart.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <ShoppingCart className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">Your quote is empty</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Click on the hotspots to add products to your quote
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {cart.map((item, index) => (
+                  <Card key={index}>
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-medium">{item.product.name}</h3>
+                          <p className="text-sm text-muted-foreground">₱{getItemPrice(item).toFixed(2)} per unit</p>
+                          {item.product.customizationOptions.filter((option) => item.selectedOptions[option.id])
+                            .length > 0 && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Customization:{" "}
+                              {item.product.customizationOptions
+                                .filter((option) => item.selectedOptions[option.id])
+                                .map((option) => option.label)
+                                .join(", ")}
+                            </p>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleRemoveFromCart(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="flex justify-between items-center mt-4">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">QTY</span>
+                          <Input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => handleUpdateCartQuantity(index, Number.parseInt(e.target.value || "0"))}
+                            className="w-20 h-8 text-center"
+                            min={item.product.moq}
+                          />
+                        </div>
+                        <span className="font-medium">₱{(getItemPrice(item) * item.quantity).toFixed(2)}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="p-4 border-t">
+            <div className="flex justify-between items-center mb-4">
+              <span className="font-medium">Total Amount:</span>
+              <span className="text-xl font-bold">₱{totalCartAmount.toFixed(2)}</span>
+            </div>
+            <Button className="w-full" disabled={cart.length === 0} onClick={handleSendPDF}>
+              Send PDF Quote
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Email Dialog */}
+      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <DialogContent className="sm:max-w-md">
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold">Enter Your Email</h2>
+            <p className="text-sm text-muted-foreground">We'll send a PDF of your quote to this email address.</p>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your.email@example.com"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowEmailDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSubmitEmail}>Send PDF</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
