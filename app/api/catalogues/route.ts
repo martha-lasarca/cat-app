@@ -6,7 +6,7 @@ export async function GET() {
     const catalogues = await getCatalogues()
     return NextResponse.json(catalogues)
   } catch (error) {
-    console.error("Error in GET /api/catalogues:", error)
+    console.error("Error fetching catalogues:", error)
     return NextResponse.json({ error: "Failed to fetch catalogues" }, { status: 500 })
   }
 }
@@ -29,7 +29,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(catalogue, { status: 201 })
   } catch (error) {
-    console.error("Error in POST /api/catalogues:", error)
-    return NextResponse.json({ error: "Failed to create catalogue" }, { status: 500 })
+    console.error("Error creating catalogue:", error)
+    return NextResponse.json(
+      {
+        error: "Failed to create catalogue",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    )
   }
 }

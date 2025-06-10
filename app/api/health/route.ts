@@ -5,6 +5,5 @@ export async function GET() {
     status: "ok",
     timestamp: new Date().toISOString(),
     message: "Las Arca Catalogues API is running",
-    environment: process.env.NODE_ENV || "unknown",
   })
 }

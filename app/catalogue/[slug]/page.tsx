@@ -8,6 +8,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ChevronLeft, ChevronRight, ShoppingCart, X } from "lucide-react"
+import { supabaseClient } from "@/lib/supabase"
 import type { Catalogue, Product, Hotspot } from "@/lib/db"
 
 interface CartItem {
@@ -40,19 +41,24 @@ export default function PublicCataloguePage() {
 
   const fetchCatalogue = async () => {
     try {
-      // Try fetching by slug first
-      let response = await fetch(`/api/catalogues/slug/${slug}`)
+      // Fetch catalogue using Supabase client
+      const { data, error } = await supabaseClient.from("catalogues").select("*").eq("slug", slug).single()
 
-      // If not found by slug, try by custom link
-      if (!response.ok) {
-        response = await fetch(`/api/catalogues/link/${slug}`)
-      }
+      if (error) {
+        // Try by custom link if slug doesn't work
+        const { data: customLinkData, error: customLinkError } = await supabaseClient
+          .from("catalogues")
+          .select("*")
+          .eq("customLink", slug)
+          .single()
 
-      if (response.ok) {
-        const data = await response.json()
-        setCatalogue(data)
+        if (customLinkError) {
+          console.error("Catalogue not found")
+        } else {
+          setCatalogue(customLinkData)
+        }
       } else {
-        console.error("Catalogue not found")
+        setCatalogue(data)
       }
     } catch (error) {
       console.error("Error fetching catalogue:", error)
