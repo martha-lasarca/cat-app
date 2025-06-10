@@ -1,7 +1,7 @@
 import { put } from "@vercel/blob"
 import { nanoid } from "nanoid"
 
-export async function uploadFile(file: File, folder = "slides") {
+export async function uploadFile(file: File, folder = "slides"): Promise<string> {
   try {
     // Check if token is available
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
@@ -9,16 +9,16 @@ export async function uploadFile(file: File, folder = "slides") {
     }
 
     // Generate a unique filename
-    const filename = `${folder}/${nanoid()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "")}`
+    const fileExtension = file.name.split(".").pop() || "jpg"
+    const filename = `${folder}/${nanoid()}.${fileExtension}`
 
-    // Upload to Vercel Blob Storage with explicit token
+    // Upload to Vercel Blob Storage
     const blob = await put(filename, file, {
       access: "public",
-      addRandomSuffix: true,
+      addRandomSuffix: false,
       token: process.env.BLOB_READ_WRITE_TOKEN,
     })
 
-    // Return the URL of the uploaded file
     return blob.url
   } catch (error) {
     console.error("Upload error:", error)

@@ -6,6 +6,7 @@ export async function GET() {
     const catalogues = await getCatalogues()
     return NextResponse.json(catalogues)
   } catch (error) {
+    console.error("Error in GET /api/catalogues:", error)
     return NextResponse.json({ error: "Failed to fetch catalogues" }, { status: 500 })
   }
 }
@@ -19,8 +20,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Name and slug are required" }, { status: 400 })
     }
 
-    console.log("Creating catalogue:", { name, slug })
-
     const catalogue = await createCatalogue({
       name,
       slug,
@@ -28,17 +27,9 @@ export async function POST(request: NextRequest) {
       products: [],
     })
 
-    console.log("Catalogue created successfully:", catalogue.id)
-
     return NextResponse.json(catalogue, { status: 201 })
   } catch (error) {
-    console.error("Error creating catalogue:", error)
-    return NextResponse.json(
-      {
-        error: "Failed to create catalogue",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 },
-    )
+    console.error("Error in POST /api/catalogues:", error)
+    return NextResponse.json({ error: "Failed to create catalogue" }, { status: 500 })
   }
 }
