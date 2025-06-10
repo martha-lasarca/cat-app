@@ -194,11 +194,6 @@ export default function EditorPage() {
   const handleUpdateProduct = (field: keyof Product, value: any) => {
     if (!selectedProduct || !catalogue) return
 
-    // Handle number fields properly to avoid NaN
-    if (field === "price" || field === "moq") {
-      value = isNaN(value) || value === "" ? 0 : Number(value)
-    }
-
     const updatedProduct = { ...selectedProduct, [field]: value }
     setSelectedProduct(updatedProduct)
 
@@ -270,11 +265,6 @@ export default function EditorPage() {
 
   const handleUpdateCustomizationOption = (optionId: string, field: keyof CustomizationOption, value: any) => {
     if (!selectedProduct) return
-
-    // Handle price field properly to avoid NaN
-    if (field === "price") {
-      value = isNaN(value) || value === "" ? 0 : Number(value)
-    }
 
     const updatedOptions = selectedProduct.customizationOptions.map((option) =>
       option.id === optionId ? { ...option, [field]: value } : option,
@@ -480,6 +470,17 @@ export default function EditorPage() {
     newImages.splice(index, 1)
 
     handleUpdateProduct("images", newImages)
+  }
+
+  // Helper function to safely parse number values
+  const safeParseFloat = (value: string): number => {
+    const parsed = Number.parseFloat(value)
+    return isNaN(parsed) ? 0 : parsed
+  }
+
+  const safeParseInt = (value: string): number => {
+    const parsed = Number.parseInt(value)
+    return isNaN(parsed) ? 0 : parsed
   }
 
   // Get products that don't have hotspots on the selected slide
@@ -704,15 +705,15 @@ export default function EditorPage() {
                         <div className="grid grid-cols-2 gap-2">
                           <Input
                             type="number"
-                            value={selectedProduct.price}
-                            onChange={(e) => handleUpdateProduct("price", Number.parseFloat(e.target.value))}
+                            value={selectedProduct.price || ""}
+                            onChange={(e) => handleUpdateProduct("price", safeParseFloat(e.target.value))}
                             placeholder="Price"
                             className="text-sm"
                           />
                           <Input
                             type="number"
-                            value={selectedProduct.moq}
-                            onChange={(e) => handleUpdateProduct("moq", Number.parseInt(e.target.value))}
+                            value={selectedProduct.moq || ""}
+                            onChange={(e) => handleUpdateProduct("moq", safeParseInt(e.target.value))}
                             placeholder="MOQ"
                             className="text-sm"
                           />
@@ -857,9 +858,9 @@ export default function EditorPage() {
                               />
                               <Input
                                 type="number"
-                                value={option.price}
+                                value={option.price || ""}
                                 onChange={(e) =>
-                                  handleUpdateCustomizationOption(option.id, "price", Number.parseFloat(e.target.value))
+                                  handleUpdateCustomizationOption(option.id, "price", safeParseFloat(e.target.value))
                                 }
                                 placeholder="Price"
                                 className="text-sm w-20"
