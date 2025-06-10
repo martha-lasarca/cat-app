@@ -31,6 +31,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const [catalogues, setCatalogues] = useState<Catalogue[]>([])
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [newCatalogueName, setNewCatalogueName] = useState("")
+  const [dbError, setDbError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchCatalogues()
@@ -47,9 +48,15 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       if (response.ok) {
         const data = await response.json()
         setCatalogues(data)
+        setDbError(null)
+      } else {
+        const errorData = await response.json()
+        setDbError(errorData.error || "Failed to fetch catalogues")
+        console.error("Error fetching catalogues:", errorData)
       }
     } catch (error) {
       console.error("Error fetching catalogues:", error)
+      setDbError("Network error - please check your connection")
     }
   }
 
@@ -78,13 +85,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         setNewCatalogueName("")
         router.push(`/admin/editor/${newCatalogue.id}`)
       } else {
-        throw new Error("Failed to create catalogue")
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to create catalogue")
       }
     } catch (error) {
       console.error("Error creating catalogue:", error)
       toast({
         title: "Error",
-        description: "Failed to create catalogue",
+        description: error instanceof Error ? error.message : "Failed to create catalogue",
         variant: "destructive",
       })
     }
@@ -137,51 +145,63 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
           {!isCollapsed && (
             <div className="space-y-2">
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="w-full gap-2">
-                    <Plus className="h-4 w-4" />
-                    New Catalogue
+              {dbError ? (
+                <div className="p-2 text-xs text-red-600 bg-red-50 rounded">
+                  <p className="font-medium">Database Error:</p>
+                  <p>{dbError}</p>
+                  <Button size="sm" variant="outline" onClick={fetchCatalogues} className="mt-2">
+                    Retry
                   </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Create New Catalogue</DialogTitle>
-                    <DialogDescription>Enter a name for your new catalogue.</DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="sidebar-name">Catalogue Name</Label>
-                      <Input
-                        id="sidebar-name"
-                        value={newCatalogueName}
-                        onChange={(e) => setNewCatalogueName(e.target.value)}
-                        placeholder="e.g., Spring-2025"
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button onClick={handleCreateCatalogue}>Create Catalogue</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-
-              <h3 className="text-sm font-medium text-muted-foreground px-2">Catalogues</h3>
-              {catalogues.length > 0 ? (
-                <Select onValueChange={handleCatalogueSelect}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select catalogue" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {catalogues.map((catalogue) => (
-                      <SelectItem key={catalogue.id} value={catalogue.id}>
-                        {catalogue.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                </div>
               ) : (
-                <p className="text-xs text-muted-foreground px-2">No catalogues yet</p>
+                <>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="w-full gap-2">
+                        <Plus className="h-4 w-4" />
+                        New Catalogue
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Create New Catalogue</DialogTitle>
+                        <DialogDescription>Enter a name for your new catalogue.</DialogDescription>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="sidebar-name">Catalogue Name</Label>
+                          <Input
+                            id="sidebar-name"
+                            value={newCatalogueName}
+                            onChange={(e) => setNewCatalogueName(e.target.value)}
+                            placeholder="e.g., Spring-2025"
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button onClick={handleCreateCatalogue}>Create Catalogue</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+
+                  <h3 className="text-sm font-medium text-muted-foreground px-2">Catalogues</h3>
+                  {catalogues.length > 0 ? (
+                    <Select onValueChange={handleCatalogueSelect}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select catalogue" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {catalogues.map((catalogue) => (
+                          <SelectItem key={catalogue.id} value={catalogue.id}>
+                            {catalogue.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="text-xs text-muted-foreground px-2">No catalogues yet</p>
+                  )}
+                </>
               )}
             </div>
           )}

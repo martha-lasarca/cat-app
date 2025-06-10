@@ -6,7 +6,19 @@ export async function GET() {
     const catalogues = await getCatalogues()
     return NextResponse.json(catalogues)
   } catch (error) {
-    console.error("Error fetching catalogues:", error)
+    console.error("Error in GET /api/catalogues:", error)
+
+    // Check if it's a database connection issue
+    if (error instanceof Error && error.message.includes("relation") && error.message.includes("does not exist")) {
+      return NextResponse.json(
+        {
+          error: "Database tables not found. Please run the Supabase schema setup.",
+          details: "Execute the SQL commands in scripts/supabase-schema.sql in your Supabase dashboard.",
+        },
+        { status: 500 },
+      )
+    }
+
     return NextResponse.json({ error: "Failed to fetch catalogues" }, { status: 500 })
   }
 }
@@ -29,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(catalogue, { status: 201 })
   } catch (error) {
-    console.error("Error creating catalogue:", error)
+    console.error("Error in POST /api/catalogues:", error)
     return NextResponse.json(
       {
         error: "Failed to create catalogue",
